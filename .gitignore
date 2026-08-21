@@ -1,0 +1,10 @@
+.DS_Store
+*.inspect.ndjson
+*.xlsx
+*.png
+node_modules
+dist/
+build/
+.env
+.env.*
+!.env.example

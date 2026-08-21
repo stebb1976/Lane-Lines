@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#062844" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icon.svg" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css?v=179" />
+    <title>Lane Lines — Swim Set Builder</title>
+  </head>
+  <body>
+    <header class="topbar">
+      <button class="brand" id="menu-toggle" aria-label="Open app menu" aria-expanded="false"><span class="mark">≋</span><span>Lane Lines</span></button>
+      <nav class="app-menu" id="app-menu" aria-label="App navigation"><button id="open-builder">Workout Creator</button><button id="open-block-creator">Block Creator</button><button id="open-library">Workout Library</button><button id="open-blocks-library">Blocks Library</button><button id="open-drills-library">Drill Library</button><button id="open-calendar">Scheduler</button><button id="open-workout-log">Workout Log</button><button id="open-schedule" hidden aria-hidden="true" tabindex="-1"></button><button id="open-github-settings">Settings</button></nav>
+      <div class="header-actions"><button class="ghost" id="new-set">New Workout</button><button class="ghost" id="undo-workout" disabled>Undo</button><button class="ghost" id="save-to-library-top">Save Workout</button><button class="primary" id="view-deck">View Deck Sheet</button></div>
+    </header>
+
+    <main>
+      <div class="deck-toolbar creator-toolbar" id="creator-back-toolbar" hidden><button class="ghost" id="back-page-creator"></button></div>
+      <section class="intro">
+        <div><h1 id="creator-title">Workout Creator</h1></div>
+        <div class="summary-card"><span>SESSION TOTAL</span><strong id="total-yards">0 yd</strong><small id="total-time">Add intervals to estimate time</small></div>
+      </section>
+
+      <section class="workspace">
+        <section class="builder" aria-label="Set builder">
+          <div class="set-meta">
+            <label>Set name<input id="set-title" placeholder="Untitled set" maxlength="80" /></label>
+            <label>Focus<span class="focus-control"><input id="set-focus" maxlength="80" placeholder="Choose or enter a focus" /><button class="focus-dropdown" type="button" aria-label="Show existing focuses" aria-expanded="false">⌄</button><div class="focus-options-menu" hidden></div></span></label>
+            <label>Pool<select id="pool-length"><option value="25">25 yd pool</option><option value="50">50 m pool</option></select></label>
+            <label>Tags<input id="set-tags" placeholder="e.g. threshold, sprint" maxlength="100" /></label>
+            <label id="workout-date-wrap">Workout date<input id="workout-date" type="date" aria-label="Workout date" /></label>
+          </div>
+          <div id="sticky-totals" class="sticky-totals"><span>WORKOUT TOTAL</span><strong id="sticky-total-distance">0 yd</strong><small id="sticky-total-time">Add set lines to estimate time</small></div>
+          <div id="blocks" class="blocks"></div>
+          <div class="block-add-actions"><button id="add-block-bottom" class="add-block-wide">+ Add block</button><button id="add-library-block" class="add-block-wide">+ Add from Blocks Library</button></div>
+        </section>
+      </section>
+    </main>
+
+    <section id="library-view" class="library-view" aria-hidden="true" aria-label="Set library">
+      <div class="deck-toolbar"><button class="ghost" id="close-library">← Back to workout creator</button></div>
+      <article class="library-page">
+        <section class="library-section" aria-labelledby="library-title"><div class="section-heading"><h1 id="library-title">Workout Library</h1><button id="create-library-workout" class="outline">+ Create New Workout</button></div><input id="library-search" class="library-search" type="search" placeholder="Search sets, focus, or tags" aria-label="Search workout library" /><div class="library-filters" aria-label="Workout Library filters"><label>FOCUS<select id="library-focus-filter"><option value="">All focuses</option></select></label><label>POOL<select id="library-pool-filter"><option value="">Any pool</option><option value="25">25 yd</option><option value="50">50 m</option></select></label><label>MIN DISTANCE<input id="library-min-distance" type="number" min="0" step="25" placeholder="yd / m" /></label><label>MAX DISTANCE<input id="library-max-distance" type="number" min="0" step="25" placeholder="yd / m" /></label><label>MIN TIME<input id="library-min-time" type="number" min="0" step="1" placeholder="minutes" /></label><label>MAX TIME<input id="library-max-time" type="number" min="0" step="1" placeholder="minutes" /></label><button id="clear-library-filters" class="ghost" type="button">Clear filters</button></div><p id="library-count" class="library-count"></p><div id="saved-sets" class="saved-sets"></div><div class="library-tip"><span>⌁</span><p>Create a new workout, or duplicate any saved workout to use it as a starting point.</p></div></section>
+      </article>
+    </section>
+    <section id="blocks-library-view" class="library-view" aria-hidden="true" aria-label="Blocks library">
+      <div class="deck-toolbar"><button class="ghost" id="close-blocks-library">← Back to workout creator</button></div>
+      <article class="library-page"><section class="library-section" aria-labelledby="blocks-library-title"><div class="section-heading"><h1 id="blocks-library-title">Blocks Library</h1><button id="create-library-block" class="outline">+ Create New Block</button></div><input id="blocks-library-search" class="library-search" type="search" placeholder="Search blocks, focus, or source workout" aria-label="Search blocks library" /><div class="library-filters" aria-label="Blocks Library filters"><label>FOCUS<select id="blocks-library-focus-filter"><option value="">All focuses</option></select></label><label>POOL<select id="blocks-library-pool-filter"><option value="">Any pool</option><option value="25">25 yd</option><option value="50">50 m</option></select></label><label>MIN DISTANCE<input id="blocks-library-min-distance" type="number" min="0" step="25" placeholder="yd / m" /></label><label>MAX DISTANCE<input id="blocks-library-max-distance" type="number" min="0" step="25" placeholder="yd / m" /></label><label>MIN TIME<input id="blocks-library-min-time" type="number" min="0" step="1" placeholder="minutes" /></label><label>MAX TIME<input id="blocks-library-max-time" type="number" min="0" step="1" placeholder="minutes" /></label><button id="clear-blocks-library-filters" class="ghost" type="button">Clear filters</button></div><p id="blocks-library-count" class="library-count"></p><div id="saved-blocks" class="saved-sets"></div><div class="library-tip"><span>⌁</span><p>Open a block to edit it in the Workout Creator, or add it to the current workout and adapt it as needed.</p></div></section></article>
+    </section>
+    <section id="drills-library-view" class="library-view" aria-hidden="true" aria-label="Drill library"><div class="deck-toolbar"><button class="ghost" id="close-drills-library">← Back to workout creator</button></div><article class="library-page"><section class="library-section drills-library-section" aria-labelledby="drills-library-title"><div class="section-heading"><h1 id="drills-library-title">Drill Library</h1></div><form id="drill-form" class="drill-form"><label>DRILL NAME<input id="drill-name" required maxlength="80" placeholder="e.g. 6-kick switch" /></label><label>STROKE<select id="drill-stroke"><option value="Fly">Fly</option><option value="Back">Back</option><option value="Breast">Breast</option><option value="Free">Free</option></select></label><label class="drill-description">DESCRIPTION<textarea id="drill-description" rows="2" maxlength="240" placeholder="Coaching cues or instructions"></textarea></label><div class="drill-form-actions"><button id="clear-drill-form" type="button" class="ghost">Clear</button><button class="primary" type="submit">Save Drill</button></div></form><div id="drill-groups" class="drill-groups"></div></section></article></section>
+    <section id="log-view" class="library-view" aria-hidden="true" aria-label="Workout log"><div class="deck-toolbar"><button class="ghost" id="close-log">← Back to workout creator</button></div><article class="library-page"><section class="workout-log library-log" aria-labelledby="log-title"><div class="section-heading"><h1 id="log-title">Workout log</h1></div><p id="log-count" class="log-count"></p><div id="log-entries" class="log-entries"></div><article id="log-stats-sheet" class="stats-sheet log-stats-sheet" aria-label="Workout statistics"></article></section></article></section>
+    <section id="calendar-view" class="library-view" aria-hidden="true" aria-label="Workout scheduler"><div class="deck-toolbar"><button class="ghost" id="close-calendar">← Back to workout creator</button></div><article class="calendar-page"><section class="scheduler-upcoming"><h1>Scheduler</h1><p class="schedule-subtitle">Your next five scheduled workouts.</p><div id="upcoming-workouts" class="upcoming-workouts"></div></section><div class="calendar-heading"><button id="previous-month" class="outline">←</button><h2 id="calendar-title"></h2><button id="next-month" class="outline">→</button></div><div class="calendar-weekdays"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div><div id="calendar-grid" class="calendar-grid"></div><p class="calendar-key"><span class="calendar-key-log"></span> Logged workout <span class="calendar-key-scheduled"></span> Scheduled workout</p></article></section>
+    <section id="schedule-view" class="library-view" aria-hidden="true" aria-label="Upcoming workout schedule"><div class="deck-toolbar"><button class="ghost" id="close-schedule">← Back to workout creator</button></div><article class="library-page"><section class="library-section schedule-section"><div class="section-heading"><h1>Schedule</h1></div><p class="schedule-subtitle">Your next five scheduled workouts.</p><div id="legacy-upcoming-workouts" class="upcoming-workouts"></div></section></article></section>
+
+    <section id="deck-view" class="deck-view" aria-hidden="true" aria-label="Consolidated deck sheet">
+      <div class="deck-toolbar"><button class="ghost" id="close-deck">← Back to editor</button><div><button class="outline" id="refresh-deck">Refresh</button><button class="primary" id="print-deck">Print / Save PDF</button></div></div>
+      <article id="deck-sheet" class="deck-sheet"></article>
+    </section>
+    <section id="stats-view" class="stats-view" aria-hidden="true" aria-label="Workout statistics">
+      <div class="deck-toolbar"><button class="ghost" id="close-stats">← Back to editor</button><button class="outline" id="refresh-stats">Refresh stats</button></div>
+      <article id="stats-sheet" class="stats-sheet"></article>
+    </section>
+    <datalist id="focus-options"></datalist>
+    <template id="block-template">
+      <article class="block">
+        <div class="block-top"><input class="block-name" value="Main set" aria-label="Block name" /><span class="repeat-badge" hidden>REPEATED BLOCK</span><span class="block-summary"><span class="block-start">Start: 0:00</span><span class="block-distance">0 yd</span><span class="block-time">Est. —</span></span><div class="block-controls"><button class="save-block" title="Save to Blocks Library" aria-label="Save to Blocks Library">★</button><button class="replace-block" title="Replace from Blocks Library" aria-label="Replace from Blocks Library">⇄</button><button class="move-block-up" title="Move block up" aria-label="Move block up">↑</button><button class="move-block-down" title="Move block down" aria-label="Move block down">↓</button><button class="duplicate" title="Duplicate block">⧉</button><button class="delete-block" title="Delete block">×</button></div></div>
+        <textarea class="block-note" rows="1" placeholder="Coaching note (optional)"></textarea>
+        <div class="block-meta"><label>FOCUS<span class="focus-control"><input class="block-focus" maxlength="80" placeholder="Choose or enter a focus" /><button class="focus-dropdown" type="button" aria-label="Show existing focuses" aria-expanded="false">⌄</button><div class="focus-options-menu" hidden></div></span></label><label class="block-creator-pool">POOL<select><option value="25">25 yd pool</option><option value="50">50 m pool</option></select></label></div>
+        <label class="block-repeat-wrap"><span>REPEAT ENTIRE BLOCK</span><input class="block-repeat" type="number" min="1" value="1" /></label>
+        <div class="round-instructions" hidden></div>
+        <div class="block-items" aria-label="Block contents"></div>
+        <button class="add-rep">+ Add set line</button>
+        <button class="add-child-block">+ Add sub-block</button>
+        <button class="add-child-library">+ Add sub-block from Blocks Library</button>
+      </article>
+    </template>
+    <template id="rep-template">
+      <div class="rep">
+        <label><span>REPS</span><input class="count" type="number" min="1" value="4" /></label>
+        <span class="times">×</span>
+        <label><span>DISTANCE</span><input class="distance" type="number" min="0" step="25" value="100" /></label>
+        <span class="unit">yd</span>
+        <label class="stroke-wrap multi-choice"><span>STROKES</span><input class="stroke" type="hidden" value="Freestyle" /><button class="multi-choice-toggle" type="button" aria-expanded="false">Freestyle</button><span class="multi-choice-menu" hidden><span class="multi-choice-option"><input type="checkbox" value="Freestyle" /> Freestyle</span><span class="multi-choice-option"><input type="checkbox" value="Backstroke" /> Backstroke</span><span class="multi-choice-option"><input type="checkbox" value="Breaststroke" /> Breaststroke</span><span class="multi-choice-option"><input type="checkbox" value="Butterfly" /> Butterfly</span><span class="multi-choice-option"><input type="checkbox" value="IM" /> IM</span><span class="multi-choice-option"><input type="checkbox" value="Choice" /> Choice</span></span></label>
+        <label class="activity-wrap multi-choice"><span>TYPE</span><input class="activity" type="hidden" value="Swim" /><button class="multi-choice-toggle" type="button" aria-expanded="false">Swim</button><span class="multi-choice-menu" hidden><span class="multi-choice-option"><input type="checkbox" value="Swim" /> Swim</span><span class="multi-choice-option"><input type="checkbox" value="Kick" /> Kick</span><span class="multi-choice-option"><input type="checkbox" value="Pull" /> Pull</span><span class="multi-choice-option"><input type="checkbox" value="Drill" /> Drill</span></span></label>
+        <label><span>TRANSITION TIME</span><input class="transition" value="2:00" placeholder="2:00" /></label>
+        <label><span>INTERVAL</span><input class="interval" value="1:30" placeholder="1:30" /></label>
+        <div class="rep-controls"><button class="move-rep-up" title="Move set line up" aria-label="Move set line up">↑</button><button class="move-rep-down" title="Move set line down" aria-label="Move set line down">↓</button><button class="duplicate-rep" title="Duplicate set line" aria-label="Duplicate set line">⧉</button><button class="delete-rep" title="Delete set line" aria-label="Delete set line">×</button></div>
+        <p class="rep-detail"><input class="detail" placeholder="e.g. descend 1–4" /><button class="choose-drill" type="button">+ Add Drill</button></p>
+        <p class="rep-time">Start: 0:00 · Total: 0 yd · Est. —</p>
+      </div>
+    </template>
+    <dialog id="save-dialog"><form method="dialog"><h2>Save Workout</h2><p>Save this complete workout so it is ready to load and adapt at a future practice.</p><label class="dialog-label">SET NAME<input id="save-name" maxlength="80" /></label><label class="dialog-label">TAGS <small>Separate tags with commas</small><input id="save-tags" maxlength="100" placeholder="threshold, aerobic" /></label><div class="dialog-actions"><button value="cancel" class="ghost">Cancel</button><button value="default" class="primary" id="confirm-save">Save Workout</button></div></form></dialog>
+    <dialog id="log-dialog"><form method="dialog"><h2>Log Workout</h2><p>Add coaching notes before moving this scheduled workout into the Workout Log.</p><label class="dialog-label">DATE<input id="log-date" type="date" readonly /></label><label class="dialog-label">COACHING NOTES <textarea id="log-notes" rows="3" maxlength="300" placeholder="e.g. Great energy; breaststroke group needed extra rest."></textarea></label><div class="dialog-actions"><button value="cancel" class="ghost">Cancel</button><button value="default" class="primary" id="confirm-log">Log Workout</button></div></form></dialog>
+    <dialog id="drill-picker-dialog"><form method="dialog"><h2>Add a Drill</h2><p>Choose a drill from your Drill Library for this set line.</p><div id="drill-picker-list" class="drill-picker-list"></div><div class="dialog-actions"><button value="cancel" class="ghost">Cancel</button></div></form></dialog>
+    <dialog id="sync-dialog"><form method="dialog"><h2>Settings</h2><p>Each user’s Workout Library, Workout Log, and Schedule are stored in their own folder in this repository.</p><p><a class="settings-repo-link" href="https://github.com/stebb1976/lane-lines-swim-set-builder" target="_blank" rel="noopener noreferrer">Open the Lane Lines GitHub repository ↗</a></p><label class="dialog-label">REPOSITORY<input id="github-repository" value="stebb1976/lane-lines-swim-set-builder" placeholder="owner/repository" /></label><label class="dialog-label">BRANCH<input id="github-branch" value="main" /></label><label class="dialog-label">USER NAME<input id="github-user-name" maxlength="80" placeholder="e.g. stephen" /><small>Project files stored in users/your-name/</small></label><label class="dialog-label">FINE-GRAINED PERSONAL ACCESS TOKEN <small>Give this repository Contents read/write permission</small><input id="github-token" name="github-token" type="password" autocomplete="current-password" placeholder="github_pat_…" /></label><div class="dialog-actions"><button value="cancel" class="ghost">Cancel</button><button type="button" class="outline" id="pull-all-github">Pull from GitHub</button><button value="default" class="primary" id="save-sync-settings">Save settings</button></div></form></dialog>
+    <dialog id="sync-conflict-dialog"><form method="dialog"><h2>Shared library changed</h2><p>The GitHub library has changed since this device last synced. To protect those updates, load and merge first, then save your local changes. You can also intentionally overwrite GitHub.</p><div class="dialog-actions"><button value="cancel" class="ghost">Cancel</button><button value="default" class="outline" id="merge-then-push">Merge &amp; save</button><button value="default" class="primary" id="force-push">Overwrite GitHub</button></div></form></dialog>
+    <dialog id="log-sync-dialog"><form method="dialog"><h2>GitHub workout-log sync</h2><p>Your workout log will be stored in its own JSON file. These settings are saved only in this browser on this device.</p><label class="dialog-label">REPOSITORY<input id="log-github-repository" value="stebb1976/lane-lines-swim-set-builder" placeholder="owner/repository" /></label><label class="dialog-label">BRANCH<input id="log-github-branch" value="main" /></label><label class="dialog-label">JSON FILE PATH<input id="log-github-file" value="swim-workout-log.json" /></label><label class="dialog-label">FINE-GRAINED PERSONAL ACCESS TOKEN <small>Give this repository Contents read/write permission</small><input id="log-github-token" name="github-token" type="password" autocomplete="current-password" placeholder="github_pat_…" /></label><div class="dialog-actions"><button value="cancel" class="ghost">Cancel</button><button value="default" class="primary" id="save-log-sync-settings">Save settings</button></div></form></dialog>
+    <dialog id="log-sync-conflict-dialog"><form method="dialog"><h2>Shared workout log changed</h2><p>The GitHub log has changed since this device last synced. You can merge the logs and save, or intentionally overwrite GitHub with this device’s log.</p><div class="dialog-actions"><button value="cancel" class="ghost">Cancel</button><button value="default" class="outline" id="merge-log-then-push">Merge &amp; save</button><button value="default" class="primary" id="force-log-push">Overwrite GitHub</button></div></form></dialog>
+    <dialog id="delete-confirm-dialog"><form method="dialog"><h2 id="delete-title">Delete this item?</h2><p id="delete-message">This cannot be undone.</p><div class="dialog-actions"><button value="cancel" class="ghost">Cancel</button><button value="default" class="primary" id="confirm-delete">Delete</button></div></form></dialog>
+    <dialog id="discard-changes-dialog"><form method="dialog"><h2>Start a new set?</h2><p>You have unsaved changes to this workout. Starting a new set will permanently discard them.</p><div class="dialog-actions"><button value="cancel" class="ghost">Keep editing</button><button value="default" class="primary" id="confirm-discard-changes">Discard changes</button></div></form></dialog>
+    <dialog id="calendar-add-dialog"><form method="dialog"><h2>Add a workout</h2><p id="calendar-add-message"></p><div class="dialog-actions"><button value="cancel" class="ghost">Cancel</button><button value="default" class="outline" id="calendar-create-new">Create New Workout</button><button value="default" class="primary" id="calendar-choose-library">Choose from Library</button></div></form></dialog>
+    <div id="toast" role="status"></div>
+    <script src="app.js?v=179"></script>
+  </body>
+</html>
