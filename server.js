@@ -6,6 +6,7 @@ const {spawn} = require('node:child_process');
 const root = __dirname;
 const configFile = path.join(root, 'll_project.json');
 const port = Number(process.env.PORT) || 8124;
+const defaultGitHubRepository = 'https://github.com/stebb1976/Lane-Lines-Library.git';
 const dataFiles = {
   library: ['ll_workouts.json', 'sets'],
   drills: ['ll_drills.json', 'drills'],
@@ -23,10 +24,11 @@ function json(res, status, body) {
 function readProjectConfig() {
   try {
     const config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
-    return config && typeof config === 'object' && !Array.isArray(config) ? config : {};
+    if (!config || typeof config !== 'object' || Array.isArray(config)) return {githubSettings:{repository:defaultGitHubRepository,branch:'main'}};
+    return {...config,githubSettings:config.githubSettings?.repository?config.githubSettings:{repository:defaultGitHubRepository,branch:'main'}};
   } catch (error) {
     if (error.code !== 'ENOENT') console.warn(`Could not read ll_project.json: ${error.message}`);
-    return {};
+    return {githubSettings:{repository:defaultGitHubRepository,branch:'main'}};
   }
 }
 
