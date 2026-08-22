@@ -1,5 +1,5 @@
 {
-  "name": "lane-lines-swim-set-builder",
+  "name": "lane-lines",
   "private": true,
   "scripts": {
     "start": "node server.js",

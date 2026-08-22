@@ -1,10 +1,12 @@
-# Lane Lines — Swim Set Builder
+# Lane Lines
 
 A responsive, offline-capable swim-workout builder. It saves your set library in the browser on each device and can print any workout as a deck sheet or PDF.
 
 ## Use it on every device
 
 This folder is a static web app: upload all of its files to any static host (for example, Netlify Drop, GitHub Pages, Cloudflare Pages, or a school web server). Use the resulting HTTPS link on your iPhone, iPad, MacBook, and any modern browser.
+
+The repository includes a GitHub Pages workflow. Pushes to `codex/show-local-data-folder` or `main` publish the Lane Lines web app and create a clickable `github-pages` deployment in GitHub. The workflow can also be run manually from the Actions tab.
 
 On iPhone or iPad, open the link in Safari, tap **Share**, then choose **Add to Home Screen**. It will behave like an app and stay available offline after its first visit.
 
@@ -20,3 +22,7 @@ On iPhone or iPad, open the link in Safari, tap **Share**, then choose **Add to 
 ## Important note about saved sets
 
 Saved sets use browser storage, so the library does not automatically sync between devices. Printing a set to PDF is the built-in way to share it today. Adding signed-in cloud sync (for example through Supabase or Firebase) would be the natural next phase.
+
+## Local data store
+
+Run `npm start`, open Settings, and use **Browse** to select a data store location. The absolute path is saved as `dataStorePath` in the project metadata file `ll_project.json` and restored at startup. The app immediately writes changes to `ll_workouts.json`, `ll_drills.json`, `ll_blocks.json`, `ll_log.json`, and `ll_schedule.json` in that folder; browser storage is only a working cache, not the authoritative source for the configured path. GitHub is contacted only when the user explicitly chooses Push, Pull, or Merge.

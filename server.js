@@ -4,177 +4,129 @@ const path = require('node:path');
 const {spawn} = require('node:child_process');
 
 const root = __dirname;
-const defaultDataDir = path.join(root, 'data');
-const configFile = path.join(root, '.lane-lines-settings.json');
+const configFile = path.join(root, 'll_project.json');
 const port = Number(process.env.PORT) || 8124;
-const files = {
-  library: ['lane-lines-workout-library.json', 'sets'],
-  schedule: ['lane-lines-scheduled-workouts.json', 'scheduledWorkouts']
+const dataFiles = {
+  library: ['ll_workouts.json', 'sets'],
+  drills: ['ll_drills.json', 'drills'],
+  blocks: ['ll_blocks.json', 'blocks'],
+  log: ['ll_log.json', 'logs'],
+  schedule: ['ll_schedule.json', 'scheduledWorkouts']
 };
 const contentTypes = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
-const noStoreExtensions = new Set(['.html', '.js', '.css']);
 
 function json(res, status, body) {
   res.writeHead(status, {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});
   res.end(JSON.stringify(body));
 }
 
-function configuredDataDir() {
+function readProjectConfig() {
   try {
     const config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
-    if (typeof config.saveFolder === 'string' && path.isAbsolute(config.saveFolder)) return config.saveFolder;
+    return typeof config.dataStorePath === 'string' && path.isAbsolute(config.dataStorePath) ? config : {};
   } catch (error) {
-    if (error.code !== 'ENOENT') console.warn(`Could not read ${path.basename(configFile)}: ${error.message}`);
+    if (error.code !== 'ENOENT') console.warn(`Could not read ll_project.json: ${error.message}`);
+    return {};
   }
-  return defaultDataDir;
 }
 
-function validateSaveFolder(value) {
-  if (typeof value !== 'string' || !value.trim()) throw new Error('Enter an absolute folder path.');
-  if (value.includes('\0') || !path.isAbsolute(value.trim())) throw new Error('The save folder must be an absolute path.');
-  const requested = path.resolve(value.trim());
-  fs.mkdirSync(requested, {recursive:true});
-  const resolved = fs.realpathSync(requested);
-  if (!fs.statSync(resolved).isDirectory()) throw new Error('The save location must be a folder.');
+function validateDataStore(value) {
+  if (typeof value !== 'string' || !value.trim() || value.includes('\0') || !path.isAbsolute(value.trim())) throw new Error('The data store location must be an absolute folder path.');
+  const resolved = fs.realpathSync(value.trim());
+  if (!fs.statSync(resolved).isDirectory()) throw new Error('The data store location must be a folder.');
   fs.accessSync(resolved, fs.constants.R_OK | fs.constants.W_OK);
   return resolved;
 }
 
-function persistSaveFolder(value) {
-  const saveFolder = validateSaveFolder(value);
+function configuredDataStore() {
+  const configured = readProjectConfig().dataStorePath;
+  if (!configured) throw new Error('Select Data Store Location');
+  return validateDataStore(configured);
+}
+
+function persistDataStore(value) {
+  const dataStorePath = validateDataStore(value);
+  const config = {...readProjectConfig(), dataStorePath};
   const temporary = `${configFile}.tmp`;
-  fs.writeFileSync(temporary, `${JSON.stringify({saveFolder}, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(temporary, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
   fs.renameSync(temporary, configFile);
-  return saveFolder;
+  return dataStorePath;
 }
 
-function readBody(req, callback) {
-  let body = '';
-  req.on('data', chunk => {
-    body += chunk;
-    if (body.length > 10_000_000) req.destroy();
-  });
-  req.on('end', () => {
-    try { callback(JSON.parse(body || '{}')); }
-    catch (error) { callback(undefined, error); }
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', chunk => { body += chunk; if (body.length > 10_000_000) reject(new Error('Request is too large.')); });
+    req.on('end', () => { try { resolve(JSON.parse(body || '{}')); } catch (error) { reject(error); } });
+    req.on('error', reject);
   });
 }
 
-function saveSettings(req, res) {
-  readBody(req, (payload, parseError) => {
-    try {
-      if (parseError) throw parseError;
-      const saveFolder = persistSaveFolder(payload.saveFolder);
-      json(res, 200, {saved:true, saveFolder, isDefault:saveFolder === defaultDataDir});
-    } catch (error) {
-      json(res, 400, {saved:false, error:`Could not use that save folder: ${error.message}`});
-    }
-  });
-}
-
-function chooseSaveFolder(res) {
-  if (process.platform !== 'darwin') return json(res, 501, {selected:false, error:'The Browse button is only available on macOS. Enter an absolute folder path instead.'});
-  const script = ['set selectedFolder to choose folder with prompt "Choose where Lane Lines should save workout JSON files"','return POSIX path of selectedFolder'].join('\n');
+function chooseDataStore(res) {
+  if (process.platform !== 'darwin') return json(res, 501, {selected:false,error:'Folder browsing is currently available on macOS only.'});
+  const script = ['set selectedFolder to choose folder with prompt "Choose the Lane Lines data store location"','return POSIX path of selectedFolder'].join('\n');
   const child = spawn('osascript', ['-e', script]);
-  let stdout = '', stderr = '', answered = false;
-  child.stdout.setEncoding('utf8');
-  child.stderr.setEncoding('utf8');
-  child.stdout.on('data', chunk => { stdout += chunk; });
-  child.stderr.on('data', chunk => { stderr += chunk; });
-  child.once('error', error => {
-    if (answered) return;
-    answered = true;
-    json(res, 500, {selected:false, error:`Could not open the folder chooser: ${error.message}`});
-  });
+  let stdout = '', stderr = '';
+  child.stdout.setEncoding('utf8'); child.stderr.setEncoding('utf8');
+  child.stdout.on('data', chunk => { stdout += chunk; }); child.stderr.on('data', chunk => { stderr += chunk; });
+  child.once('error', error => json(res, 500, {selected:false,error:error.message}));
   child.once('close', code => {
-    if (answered) return;
-    answered = true;
     if (code !== 0) {
-      const detail = stderr.trim();
-      const cancelled = /user canceled|cancelled|\(-128\)/i.test(detail);
-      if (cancelled) return json(res, 200, {selected:false, cancelled:true});
-      const permissionDenied = /not authorized|not permitted|permission|privacy|automation|\(-1743\)/i.test(detail);
-      const error = permissionDenied
-        ? 'macOS blocked the folder chooser. Allow your terminal or Node launcher under System Settings → Privacy & Security → Automation, then try Browse… again. You can still use Save typed path.'
-        : `The macOS folder chooser failed${detail ? `: ${detail}` : '.'} The current save folder was not changed; you can use Save typed path instead.`;
-      return json(res, 500, {selected:false, cancelled:false, error});
+      if (/user canceled|cancelled|\(-128\)/i.test(stderr)) return json(res, 200, {selected:false,cancelled:true});
+      return json(res, 500, {selected:false,error:`Could not select the folder${stderr.trim() ? `: ${stderr.trim()}` : '.'}`});
     }
-    try {
-      const saveFolder = persistSaveFolder(stdout.trim());
-      json(res, 200, {selected:true, saved:true, saveFolder, isDefault:saveFolder === defaultDataDir});
-    } catch (error) {
-      json(res, 400, {selected:false, error:`Could not use the selected folder: ${error.message}`});
-    }
+    try { json(res, 200, {selected:true,dataStorePath:persistDataStore(stdout.trim())}); }
+    catch (error) { json(res, 400, {selected:false,error:error.message}); }
   });
 }
 
-function openSaveFolder(res) {
+async function saveData(req, res) {
   try {
-    const saveFolder = validateSaveFolder(configuredDataDir());
-    if (process.platform !== 'darwin') throw new Error('Opening the folder automatically is only available on macOS.');
-    const child = spawn('open', [saveFolder], {detached:true, stdio:'ignore'});
-    let answered = false;
-    child.once('error', error => {
-      if (answered) return;
-      answered = true;
-      json(res, 500, {opened:false, error:`Could not open the folder in Finder: ${error.message}`});
-    });
-    child.once('spawn', () => {
-      if (answered) return;
-      answered = true;
-      child.unref();
-      json(res, 200, {opened:true, saveFolder});
-    });
-  } catch (error) {
-    json(res, 400, {opened:false, error:error.message});
-  }
-}
-
-function saveFiles(req, res) {
-  readBody(req, (payload, parseError) => {
-    try {
-      if (parseError) throw parseError;
-      if (!payload.library) throw new Error('Workout Library data is required.');
-      const entries = Object.entries(files).filter(([type]) => payload[type] !== undefined);
-      for (const [type, [, property]] of entries) {
-        if (!payload[type] || !Array.isArray(payload[type][property])) throw new Error(`Invalid ${type} data.`);
-      }
-      const dataDir = validateSaveFolder(configuredDataDir());
-      const written = [];
-      for (const [type, [name]] of entries) {
-        const target = path.join(dataDir, name);
-        const temporary = `${target}.tmp`;
-        fs.writeFileSync(temporary, `${JSON.stringify(payload[type], null, 2)}\n`, 'utf8');
-        fs.renameSync(temporary, target);
-        written.push(target);
-      }
-      json(res, 200, {saved:true, saveFolder:dataDir, files:written});
-    } catch (error) {
-      json(res, 400, {saved:false, error:error.message});
+    const payload = await readBody(req);
+    const dataStorePath = configuredDataStore();
+    const written = [];
+    for (const [type, [name, property]] of Object.entries(dataFiles)) {
+      if (!(type in payload)) continue;
+      const values = payload[type]?.[property];
+      if (!Array.isArray(values)) throw new Error(`${name} requires a ${property} array.`);
+      const target = path.join(dataStorePath, name), temporary = `${target}.tmp`;
+      fs.writeFileSync(temporary, `${JSON.stringify(payload[type], null, 2)}\n`, 'utf8');
+      fs.renameSync(temporary, target);
+      written.push(name);
     }
-  });
+    json(res, 200, {saved:true,dataStorePath,written});
+  } catch (error) { json(res, 400, {saved:false,error:error.message}); }
 }
 
-http.createServer((req, res) => {
-  if (req.method === 'GET' && req.url === '/api/save-settings') {
-    const saveFolder = configuredDataDir();
-    return json(res, 200, {saveFolder, isDefault:saveFolder === defaultDataDir});
-  }
-  if (req.method === 'POST' && req.url === '/api/save-settings') return saveSettings(req, res);
-  if (req.method === 'POST' && req.url === '/api/choose-save-folder') return chooseSaveFolder(res);
-  if (req.method === 'POST' && req.url === '/api/open-save-folder') return openSaveFolder(res);
-  if (req.method === 'POST' && req.url === '/api/save-workout-files') return saveFiles(req, res);
-  if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, 405, {error:'Method not allowed'});
+function loadData(res) {
+  try {
+    const dataStorePath = configuredDataStore(), data = {};
+    for (const [type, [name, property]] of Object.entries(dataFiles)) {
+      const target = path.join(dataStorePath, name);
+      if (!fs.existsSync(target)) continue;
+      const payload = JSON.parse(fs.readFileSync(target, 'utf8'));
+      const values = Array.isArray(payload) ? payload : payload[property];
+      if (!Array.isArray(values)) throw new Error(`${name} does not contain a valid ${property} array.`);
+      data[type] = values;
+    }
+    json(res, 200, {loaded:true,dataStorePath,data});
+  } catch (error) { json(res, 400, {loaded:false,error:error.message}); }
+}
+
+http.createServer(async (req, res) => {
   const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+  if (req.method === 'GET' && pathname === '/api/project-config') return json(res, 200, readProjectConfig());
+  if (req.method === 'POST' && pathname === '/api/browse-data-store') return chooseDataStore(res);
+  if (req.method === 'POST' && pathname === '/api/data') return saveData(req, res);
+  if (req.method === 'GET' && pathname === '/api/data') return loadData(res);
+  if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, 405, {error:'Method not allowed'});
   const requested = pathname === '/' ? 'index.html' : pathname.slice(1);
   const target = path.resolve(root, requested);
-  if (!target.startsWith(`${root}${path.sep}`) || target.startsWith(`${defaultDataDir}${path.sep}`)) return json(res, 404, {error:'Not found'});
+  if (!target.startsWith(`${root}${path.sep}`) || target === configFile) return json(res, 404, {error:'Not found'});
   fs.readFile(target, (error, contents) => {
     if (error) return json(res, 404, {error:'Not found'});
-    const extension = path.extname(target);
-    const headers = {'Content-Type':contentTypes[extension] || 'application/octet-stream'};
-    if (noStoreExtensions.has(extension) || path.basename(target) === 'sw.js') headers['Cache-Control'] = 'no-store, max-age=0';
-    res.writeHead(200, headers);
-    res.end(req.method === 'HEAD' ? undefined : contents);
+    const headers = {'Content-Type':contentTypes[path.extname(target)] || 'application/octet-stream'};
+    if (/\.(html|js|css)$/.test(target) || path.basename(target) === 'sw.js') headers['Cache-Control'] = 'no-store, max-age=0';
+    res.writeHead(200, headers); res.end(req.method === 'HEAD' ? undefined : contents);
   });
 }).listen(port, '127.0.0.1', () => console.log(`Lane Lines local app: http://127.0.0.1:${port}`));
