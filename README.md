@@ -26,3 +26,5 @@ Saved sets use browser storage, so the library does not automatically sync betwe
 ## Local data store
 
 Run `npm start`, open Settings, and use **Browse** to select a data store location. The absolute path is saved as `dataStorePath` in the project metadata file `ll_project.json` and restored at startup. The app immediately writes changes to `ll_workouts.json`, `ll_drills.json`, `ll_blocks.json`, `ll_log.json`, and `ll_schedule.json` in that folder; browser storage is only a working cache, not the authoritative source for the configured path. GitHub is contacted only when the user explicitly chooses Push, Pull, or Merge.
+
+On iPhone and iPad, Safari does not provide web apps access to an arbitrary writable folder. There, **Browse** initializes Safari's private on-device file system instead. The read-only location field identifies that storage, and `ll_project.json` plus the same five `ll_*.json` data files are persisted there and restored at startup.
