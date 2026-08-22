@@ -35,3 +35,7 @@ On iPhone and iPad, Safari does not provide web apps access to an arbitrary writ
 ## Personal GitHub backup
 
 Each user can create and control a separate GitHub repository, then enter its `owner/repository`, branch, and fine-grained token in Settings. Manual Push, Pull, and Merge operations use `ll_workouts.json`, `ll_drills.json`, `ll_blocks.json`, `ll_log.json`, and `ll_schedule.json` at the root of that personal repository. Restrict the token to that repository with Contents read/write permission.
+
+## Shared computer GitHub settings
+
+For one shared GitHub configuration across every browser on a computer, start the local app with `npm start` and open `http://127.0.0.1:8124` in the browser you want to use. Saving GitHub Settings then stores the repository URL, branch, and token in the local `ll_project.json` file beside the app. The server listens only on that computer (`127.0.0.1`), and the settings file is excluded from Git. Do not use GitHub Pages or open `index.html` directly when you want this shared-computer configuration.

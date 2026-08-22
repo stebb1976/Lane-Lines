@@ -23,11 +23,18 @@ function json(res, status, body) {
 function readProjectConfig() {
   try {
     const config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
-    return typeof config.dataStorePath === 'string' && path.isAbsolute(config.dataStorePath) ? config : {};
+    return config && typeof config === 'object' && !Array.isArray(config) ? config : {};
   } catch (error) {
     if (error.code !== 'ENOENT') console.warn(`Could not read ll_project.json: ${error.message}`);
     return {};
   }
+}
+
+function writeProjectConfig(config) {
+  const temporary = `${configFile}.tmp`;
+  fs.writeFileSync(temporary, `${JSON.stringify(config, null, 2)}\n`, {encoding:'utf8', mode:0o600});
+  fs.renameSync(temporary, configFile);
+  fs.chmodSync(configFile, 0o600);
 }
 
 function validateDataStore(value) {
@@ -47,10 +54,19 @@ function configuredDataStore() {
 function persistDataStore(value) {
   const dataStorePath = validateDataStore(value);
   const config = {...readProjectConfig(), dataStorePath};
-  const temporary = `${configFile}.tmp`;
-  fs.writeFileSync(temporary, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
-  fs.renameSync(temporary, configFile);
+  writeProjectConfig(config);
   return dataStorePath;
+}
+
+function saveGitHubSettings(req, res) {
+  readBody(req).then(payload => {
+    const repository = String(payload.repository || '').trim();
+    const branch = String(payload.branch || 'main').trim() || 'main';
+    const token = String(payload.token || '').trim();
+    if (!repository || !token || repository.length > 500 || branch.length > 200 || token.length > 500) throw new Error('A repository URL, branch, and access token are required.');
+    writeProjectConfig({...readProjectConfig(), githubSettings:{repository, branch, token}});
+    json(res, 200, {saved:true});
+  }).catch(error => json(res, 400, {saved:false,error:error.message}));
 }
 
 function readBody(req) {
@@ -116,6 +132,7 @@ function loadData(res) {
 http.createServer(async (req, res) => {
   const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
   if (req.method === 'GET' && pathname === '/api/project-config') return json(res, 200, readProjectConfig());
+  if (req.method === 'POST' && pathname === '/api/github-settings') return saveGitHubSettings(req, res);
   if (req.method === 'POST' && pathname === '/api/browse-data-store') return chooseDataStore(res);
   if (req.method === 'POST' && pathname === '/api/data') return saveData(req, res);
   if (req.method === 'GET' && pathname === '/api/data') return loadData(res);
