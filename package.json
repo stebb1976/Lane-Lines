@@ -1,0 +1,8 @@
+{
+  "name": "lane-lines-swim-set-builder",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check app.js && node --check server.js"
+  }
+}
