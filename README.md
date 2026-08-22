@@ -17,6 +17,7 @@ On iPhone or iPad, open the link in Safari, tap **Share**, then choose **Add to 
 - Running yardage/metre and estimated interval-time totals
 - Duplicate/delete and quick-add set controls
 - Scheduler library selection with Schedule, Preview, and Edit workflows
+- Blocks Library Preview, Edit, Duplicate, and contextual Insert actions
 - Source-aware workout saving for the Library, Log, and Scheduler
 - Device-local saved workout library
 - Print/PDF deck sheets
