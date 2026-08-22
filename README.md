@@ -16,6 +16,7 @@ On iPhone or iPad, open the link in Safari, tap **Share**, then choose **Add to 
 - Repetitions, distance, stroke, send-off interval, and coaching notes
 - Running yardage/metre and estimated interval-time totals
 - Duplicate/delete and quick-add set controls
+- Scheduler library selection with Schedule, Preview, and Edit workflows
 - Device-local saved workout library
 - Print/PDF deck sheets
 

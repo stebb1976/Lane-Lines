@@ -9,7 +9,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="apple-touch-icon" href="icon.svg" />
     <link rel="icon" href="icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=189" />
+    <link rel="stylesheet" href="styles.css?v=199" />
     <title>Lane Lines</title>
   </head>
   <body>
@@ -104,7 +104,9 @@
     <dialog id="delete-confirm-dialog"><form method="dialog"><h2 id="delete-title">Delete this item?</h2><p id="delete-message">This cannot be undone.</p><div class="dialog-actions"><button value="cancel" class="ghost">Cancel</button><button value="default" class="primary" id="confirm-delete">Delete</button></div></form></dialog>
     <dialog id="discard-changes-dialog"><form method="dialog"><h2>Start a new set?</h2><p>You have unsaved changes to this workout. Starting a new set will permanently discard them.</p><div class="dialog-actions"><button value="cancel" class="ghost">Keep editing</button><button value="default" class="primary" id="confirm-discard-changes">Discard changes</button></div></form></dialog>
     <dialog id="calendar-add-dialog"><form method="dialog"><h2>Add a workout</h2><p id="calendar-add-message"></p><div class="dialog-actions"><button value="cancel" class="ghost">Cancel</button><button value="default" class="outline" id="calendar-create-new">Create New Workout</button><button value="default" class="primary" id="calendar-choose-library">Choose from Library</button></div></form></dialog>
+    <dialog id="schedule-workout-preview-dialog" class="schedule-preview-dialog"><form method="dialog"><h2 id="schedule-preview-title">Workout preview</h2><p id="schedule-preview-meta"></p><div id="schedule-preview-body" class="schedule-preview-body"></div><div class="dialog-actions"><button value="cancel" class="ghost">Back</button><button type="button" class="outline" id="edit-preview-workout">Edit &amp; Schedule</button><button type="button" class="primary" id="schedule-preview-workout">Schedule as Is</button></div></form></dialog>
+    <dialog id="schedule-edit-choice-dialog"><form method="dialog"><h2>Save the library changes?</h2><p id="schedule-edit-choice-message"></p><div class="dialog-actions"><button value="cancel" class="ghost">Keep Editing</button><button type="button" class="outline" id="schedule-edited-only">Schedule Only</button><button type="button" class="primary" id="schedule-update-library">Update Library &amp; Schedule</button></div></form></dialog>
     <div id="toast" role="status"></div>
-    <script src="app.js?v=198"></script>
+    <script src="app.js?v=199"></script>
   </body>
 </html>
