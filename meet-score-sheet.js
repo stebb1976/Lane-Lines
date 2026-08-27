@@ -4,4 +4,4 @@ const renderMeetScoreStorageWithSheet=renderMeetScoreStorage;
 renderMeetScoreStorage=function(){renderMeetScoreStorageWithSheet();const area=$('#meet-score-storage');if(!area.querySelector('.view-meet-score-sheet')){const button=document.createElement('button');button.type='button';button.className='outline view-meet-score-sheet';button.textContent='View / Print Sheet';button.onclick=openMeetScoreSheet;area.append(button)}};
 renderMeetScoreStorage();
 const showPageWithMeetToolbar=showPage;
-showPage=function(page,...args){showPageWithMeetToolbar(page,...args);$('.header-actions').hidden=page==='dual-meet-scoring'};
+showPage=function(page,...args){showPageWithMeetToolbar(page,...args);$('.header-actions').hidden=false;['new-set','save-to-library-top','schedule-current-workout','view-deck'].forEach(id=>{$('#'+id).hidden=page==='dual-meet-scoring'})};
