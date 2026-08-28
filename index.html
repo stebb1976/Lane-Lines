@@ -38,7 +38,7 @@
             <label>Focus<span class="focus-control"><input id="set-focus" maxlength="80" placeholder="Choose or enter a focus" /><button class="focus-dropdown" type="button" aria-label="Show existing focuses" aria-expanded="false">⌄</button><div class="focus-options-menu" hidden></div></span></label>
             <label>Pool<select id="pool-length"><option value="25">25 yd pool</option><option value="50">50 m pool</option></select></label>
             <label>Tags<input id="set-tags" placeholder="e.g. threshold, sprint" maxlength="100" /></label>
-            <input id="workout-date" type="hidden" />
+            <label>Workout Date<input id="workout-date" type="date" /></label>
           </div>
           <div id="sticky-totals" class="sticky-totals"><span>WORKOUT TOTAL</span><strong id="sticky-total-distance">0 yd</strong><small id="sticky-total-time">Add set lines to estimate time</small></div>
           <div id="blocks" class="blocks"></div>
@@ -117,7 +117,7 @@
     <dialog id="schedule-save-choice-dialog"><form method="dialog"><h2>Save to the Workout Library?</h2><p id="schedule-save-choice-message"></p><div class="dialog-actions"><button value="cancel" class="ghost">Cancel</button><button type="button" class="outline" id="schedule-without-library">Schedule Only</button><button type="button" class="primary" id="schedule-with-library">Save to Library &amp; Schedule</button></div></form></dialog>
     <dialog id="schedule-date-dialog" class="schedule-date-dialog"><form method="dialog"><h2 id="schedule-date-workout">Schedule workout</h2><p>Confirm or change the workout date.</p><div class="mini-calendar-heading"><button type="button" class="outline" id="schedule-date-previous" aria-label="Previous month">←</button><strong id="schedule-date-month"></strong><button type="button" class="outline" id="schedule-date-next" aria-label="Next month">→</button></div><div class="mini-calendar-weekdays"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div><div id="schedule-date-grid" class="mini-calendar-grid"></div><p id="schedule-date-selected" class="schedule-date-selected"></p><div class="dialog-actions"><button value="cancel" class="ghost">Cancel</button><button type="button" class="primary" id="confirm-schedule-date">Schedule Workout</button></div></form></dialog>
     <div id="toast" role="status"></div>
-    <script src="app.js?v=259"></script>
+    <script src="app.js?v=260"></script>
     <script src="team-c-control.js?v=226"></script>
     <script src="scoring-limits.js?v=227"></script>
     <script src="meet-saved-scores.js?v=241"></script>
