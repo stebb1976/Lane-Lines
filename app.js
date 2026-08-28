@@ -92,7 +92,6 @@ function addBlock(container,data={name:'New block',note:'',focus:'',pool:'',repe
   const renderRoundInstructions=()=>{const area=$('.round-instructions',node),repeat=Math.max(1,+val(node,'block-repeat')||1),existing=[...area.querySelectorAll('.round-instruction')].map(field=>field.value);if(existing.length)roundInstructions=existing;const badge=$('.repeat-badge',node),repeated=repeat>1;node.classList.toggle('is-repeated',repeated);badge.hidden=!repeated;badge.textContent=`REPEAT × ${repeat}`;area.hidden=!repeated;if(!repeated){area.innerHTML='';return}area.innerHTML=`<p>ROUND-BY-ROUND INSTRUCTIONS</p>${Array.from({length:repeat},(_,index)=>`<label>ROUND ${index+1}<textarea class="round-instruction" rows="1" placeholder="Instruction for round ${index+1} (optional)">${escapeHtml(roundInstructions[index]||'')}</textarea></label>`).join('')}`;area.querySelectorAll('.round-instruction').forEach(field=>field.addEventListener('input',()=>{markDirty()}))};
   renderRoundInstructions();
   blockItems(data).forEach(item=>isRepItem(item)?addRep(items,item):addBlock(items,item));
-  $('.add-rep',node).onclick=()=>{addRep(items);markDirty();updateTotals()};
   $('.add-child-block',node).onclick=()=>{addBlock(items);markDirty();updateTotals()};
   $('.add-child-library',node).onclick=()=>{blockLibraryInsertionTarget=node;openBlocksLibrary()};
   $('.delete-block',node).onclick=()=>{if(container===blocks&&blocks.children.length<=1)toast('Keep at least one top-level block in your set.');else{node.remove();markDirty();updateTotals()}};
@@ -107,6 +106,7 @@ function addBlock(container,data={name:'New block',note:'',focus:'',pool:'',repe
   container.append(node); renderFocusOptions(); updateTotals(); return node;
 }
 function readBlock(node){return {name:val(node,'block-name'),note:val(node,'block-note'),focus:titleCaseFocus(val(node,'block-focus')),pool:'',repeat:+val(node,'block-repeat')||1,roundInstructions:[...node.querySelectorAll(':scope > .round-instructions .round-instruction')].map(field=>field.value),items:[...$('.block-items',node).children].map(item=>item.classList.contains('rep')?{type:'rep',...readRep(item)}:{type:'block',...readBlock(item)})}}
+document.addEventListener('click',event=>{const button=event.target.closest?.('.add-rep');if(!button)return;event.preventDefault();const block=button.closest('.block'),items=block&&$('.block-items',block);if(!items){toast('Unable to add a set line to this block.');return}addRep(items);markDirty();updateTotals()});
 function currentSet(){return {title:$('#set-title').value.trim()||'Untitled set',focus:titleCaseFocus($('#set-focus').value),tags:$('#set-tags').value,pool:$('#pool-length').value,blocks:[...blocks.children].map(readBlock)}}
 function intervalSeconds(s){const m=s.trim().match(/^(?:(\d+):)?(\d{1,2})$/);return m?(+(m[1]||0)*60 + +m[2]):0}
 function repEstimateSeconds(rep,pool='25'){const repeats=+rep.count||0,distance=+rep.distance||0,interval=intervalSeconds(rep.interval||''),transition=intervalSeconds(rep.transition||'2:00');return transition+repeats*(interval||distance*(pool==='25'?.9:1.05))}
