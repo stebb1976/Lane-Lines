@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#062844" />
+    <title>Dual Meet Scoring · Lane Lines</title>
+    <link rel="icon" href="../icon.svg?v=1" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css?v=1" />
+    <link rel="stylesheet" href="meet-saved-scores.css?v=1" />
+    <link rel="stylesheet" href="meet-score-json.css?v=1" />
+    <link rel="stylesheet" href="meet-gender-scoring.css?v=1" />
+  </head>
+  <body>
+    <header class="topbar"><a class="brand" href="../index.html"><span class="mark">≋</span><span>Lane Lines</span></a><a class="back" href="../index.html">← Back to Lane Lines</a></header>
+    <main class="dual-meet-view">
+      <article class="dual-meet-sheet">
+        <div class="section-heading"><div><p class="deck-kicker">LANE LINES · MEET TOOLS</p><h1>Meet Scoring</h1><p class="dual-meet-intro">Enter the team for each scoring place. Team totals update automatically.</p></div><button id="reset-dual-meet" class="outline" type="button">Reset results</button></div>
+        <section class="dual-meet-settings" aria-label="Meet setup"><label>MEET TYPE<select id="dual-meet-type"><option value="dual">Dual Meet</option><option value="double-dual">Double Dual</option></select></label><label>TEAM A<input id="dual-team-a" maxlength="50" placeholder="Team A" /></label><label>TEAM B<input id="dual-team-b" maxlength="50" placeholder="Team B" /></label><label id="dual-team-c-label" hidden>TEAM C<input id="dual-team-c" maxlength="50" placeholder="Team C" /></label><label>INDIVIDUAL POINTS<input id="dual-individual-points" inputmode="decimal" placeholder="6, 4, 3, 2, 1" /></label><label>RELAY POINTS<input id="dual-relay-points" inputmode="decimal" placeholder="8, 4, 2" /></label></section>
+        <p id="dual-meet-note" class="dual-meet-note">The starting schedule is 6–4–3–2–1 for individual events and 8–4–2 for relays.</p>
+        <section id="dual-scoreboard" class="dual-scoreboard" aria-label="Meet score"></section>
+        <div id="dual-meet-events" class="dual-meet-events"></div>
+        <div class="dual-meet-actions"><button id="add-dual-event" type="button" class="outline">+ Add Event</button><button id="add-dual-diving" type="button" class="outline">+ Add 1 m Diving</button></div>
+      </article>
+    </main>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js?v=1"></script>
+    <script src="team-c-control.js?v=1"></script>
+    <script src="scoring-limits.js?v=1"></script>
+    <script src="meet-saved-scores.js?v=1"></script>
+    <script src="meet-score-sheet.js?v=1"></script>
+    <script src="running-meet-scores.js?v=1"></script>
+    <script src="meet-score-json.js?v=1"></script>
+    <script src="meet-gender-scoring.js?v=1"></script>
+  </body>
+</html>
