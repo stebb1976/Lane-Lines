@@ -10,6 +10,12 @@ type Swimmer = { id: string; name: string; gender: Gender; times: Record<StrokeK
 type Leg = { stroke: StrokeKey; swimmer: Swimmer; time: number };
 type RelayTeam = { label: string; legs: Leg[]; total: number };
 type RelayResult = { event: EventKey; teams: RelayTeam[] };
+type SetupFile = { version: number; savedAt: string; activeRoster: Gender; selections: { events: EventKey[]; teamCount: number; mode: Mode; maximumAppearances: number }; swimmers: Swimmer[] };
+type SetupFileHandle = { name: string; getFile: () => Promise<File>; createWritable: () => Promise<{ write: (contents: string) => Promise<void>; close: () => Promise<void> }> };
+type PickerWindow = Window & {
+  showOpenFilePicker?: (options: object) => Promise<SetupFileHandle[]>;
+  showSaveFilePicker?: (options: object) => Promise<SetupFileHandle>;
+};
 
 const EVENTS: { key: EventKey; name: string; short: string; legs: StrokeKey[] }[] = [
   { key: "medley", name: "200 Medley Relay", short: "200 Medley", legs: ["back", "breast", "fly", "free50"] },
@@ -296,6 +302,8 @@ export default function Home() {
   const [saved, setSaved] = useState(true);
   const [rosterMessage, setRosterMessage] = useState("");
   const importInput = useRef<HTMLInputElement>(null);
+  const setupInput = useRef<HTMLInputElement>(null);
+  const setupHandle = useRef<SetupFileHandle | null>(null);
   useEffect(() => { const raw = localStorage.getItem("relay-room-roster"); if (raw) try { setSwimmers(JSON.parse(raw).map((s: Swimmer & { gender: Gender | "Girls" | "Boys" }) => ({ ...s, gender: s.gender === "Girls" ? "Women" : s.gender === "Boys" ? "Men" : s.gender }))); } catch {} }, []);
   useEffect(() => { if (!saved) { const timer = setTimeout(() => { localStorage.setItem("relay-room-roster", JSON.stringify(swimmers)); setSaved(true); }, 400); return () => clearTimeout(timer); } }, [swimmers, saved]);
   const roster = swimmers.filter(s => s.gender === gender);
@@ -307,12 +315,49 @@ export default function Home() {
   });
   const run = () => { const out = optimize(roster, events, teamCount, mode, cap); setResults(out.results); setWarning(out.warning); document.getElementById("results")?.scrollIntoView({ behavior: "smooth" }); };
   const add = () => { const n: Swimmer = { id: crypto.randomUUID(), name: "New swimmer", gender, unavailable: false, excludedEvents: [], lockEvent: "", lockTeam: 1, lockStroke: "", times: { back: 30, breast: 33, fly: 29, free50: 27, free100: 59 } }; setSwimmers(s => [...s, n]); setSaved(false); };
-  const saveSetup = () => {
-    const setup = { version: 1, savedAt: new Date().toISOString(), activeRoster: gender, selections: { events, teamCount, mode, maximumAppearances: cap }, swimmers };
-    const blob = new Blob([JSON.stringify(setup, null, 2)], { type: "application/json;charset=utf-8" });
+  const setupJson = () => JSON.stringify({ version: 1, savedAt: new Date().toISOString(), activeRoster: gender, selections: { events, teamCount, mode, maximumAppearances: cap }, swimmers }, null, 2);
+  const suggestedSetupName = () => gender === "Women" ? "womens_relay_optimizer.json" : "mens_relay_optimizer.json";
+  const downloadSetup = (contents: string) => {
+    const blob = new Blob([contents], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob); const link = document.createElement("a");
-    link.href = url; link.download = gender === "Women" ? "womens_relay_optimizer.json" : "mens_relay_optimizer.json"; link.click(); URL.revokeObjectURL(url);
+    link.href = url; link.download = suggestedSetupName(); link.click(); URL.revokeObjectURL(url);
     setRosterMessage(`Saved both rosters and the current optimizer selections to ${link.download}.`);
+  };
+  const saveToHandle = async (handle: SetupFileHandle, contents: string) => {
+    const writable = await handle.createWritable(); await writable.write(contents); await writable.close();
+    setupHandle.current = handle; setRosterMessage(`Saved setup to ${handle.name}.`);
+  };
+  const saveAsSetup = async () => {
+    const contents = setupJson(); const picker = (window as PickerWindow).showSaveFilePicker;
+    if (!picker) return downloadSetup(contents);
+    try {
+      const handle = await picker.call(window, { suggestedName: suggestedSetupName(), types: [{ description: "Relay Optimizer setup", accept: { "application/json": [".json"] } }] });
+      await saveToHandle(handle, contents);
+    } catch (error) { if ((error as Error).name !== "AbortError") setRosterMessage("The setup could not be saved."); }
+  };
+  const saveSetup = async () => {
+    if (!setupHandle.current) return saveAsSetup();
+    try { await saveToHandle(setupHandle.current, setupJson()); }
+    catch { setupHandle.current = null; setRosterMessage("That file is no longer available. Choose Save As to select it again."); }
+  };
+  const applySetup = (raw: string, handle?: SetupFileHandle) => {
+    const data = JSON.parse(raw) as SetupFile;
+    if (!Array.isArray(data.swimmers) || !data.selections || !Array.isArray(data.selections.events)) throw new Error("This is not a valid Relay Optimizer setup file.");
+    const migrated = data.swimmers.map(s => ({ ...s, gender: (s.gender as Gender | "Girls" | "Boys") === "Girls" ? "Women" as const : (s.gender as Gender | "Girls" | "Boys") === "Boys" ? "Men" as const : s.gender }));
+    const activeRoster = (data.activeRoster as Gender | "Girls" | "Boys") === "Girls" ? "Women" : (data.activeRoster as Gender | "Girls" | "Boys") === "Boys" ? "Men" : data.activeRoster;
+    setSwimmers(migrated); setGender(activeRoster); setEvents(data.selections.events); setTeamCount(data.selections.teamCount); setMode(data.selections.mode); setCap(data.selections.maximumAppearances); setResults([]); setWarning(""); setSaved(false);
+    setupHandle.current = handle || null; setRosterMessage(`Opened setup${handle?.name ? ` from ${handle.name}` : ""}.`);
+  };
+  const openSetup = async () => {
+    const picker = (window as PickerWindow).showOpenFilePicker;
+    if (!picker) return setupInput.current?.click();
+    try { const [handle] = await picker.call(window, { multiple: false, types: [{ description: "Relay Optimizer setup", accept: { "application/json": [".json"] } }] }); applySetup(await (await handle.getFile()).text(), handle); }
+    catch (error) { if ((error as Error).name !== "AbortError") setRosterMessage(error instanceof Error ? error.message : "That setup could not be opened."); }
+  };
+  const openFallbackSetup = async (file?: File) => {
+    if (!file) return;
+    try { applySetup(await file.text()); } catch (error) { setRosterMessage(error instanceof Error ? error.message : "That setup could not be opened."); }
+    finally { if (setupInput.current) setupInput.current.value = ""; }
   };
   const importRoster = async (file?: File) => {
     if (!file) return;
@@ -343,7 +388,7 @@ export default function Home() {
         <button className="optimize" onClick={run} disabled={!events.length}>Optimize full meet <span>→</span></button>
       </div>
       <div className="roster card">
-        <div className="section-title roster-head"><span>02</span><div><h2>{gender}’s roster</h2><p>Edit seed times, availability, exclusions, and relay locks.</p></div><div className="roster-actions"><input ref={importInput} type="file" accept=".csv,text/csv" aria-label="Import roster CSV" onChange={e => importRoster(e.target.files?.[0])}/><button onClick={() => importInput.current?.click()}>Import CSV</button><button onClick={saveSetup}>Save setup</button><button className="add-swimmer" onClick={add}>＋ Add swimmer</button></div></div>
+        <div className="section-title roster-head"><span>02</span><div><h2>{gender}’s roster</h2><p>Edit seed times, availability, exclusions, and relay locks.</p></div><div className="roster-actions"><input ref={importInput} type="file" accept=".csv,text/csv" aria-label="Import roster CSV" onChange={e => importRoster(e.target.files?.[0])}/><input ref={setupInput} type="file" accept=".json,application/json" aria-label="Open relay optimizer setup" onChange={e => openFallbackSetup(e.target.files?.[0])}/><button onClick={() => importInput.current?.click()}>Import CSV</button><button onClick={openSetup}>Open setup</button><button onClick={saveSetup}>Save</button><button onClick={saveAsSetup}>Save As</button><button className="add-swimmer" onClick={add}>＋ Add swimmer</button></div></div>
         <div className="table-wrap"><table><thead><tr><th>Swimmer</th>{STROKES.map(s => <th key={s.key}>{s.label}</th>)}<th>Availability</th><th>Exclude from</th><th>Relay lock</th><th>Team</th><th>Stroke</th></tr></thead><tbody>{roster.map(s => <tr key={s.id} className={s.unavailable ? "muted" : ""}><td><input className="name" value={s.name} aria-label="Swimmer name" onChange={e => update(s.id, { name: e.target.value })}/></td>{STROKES.map(st => <td key={st.key}><TimeInput value={s.times[st.key]} label={`${s.name} ${st.label}`} onCommit={value => update(s.id, { times: { ...s.times, [st.key]: value } })}/></td>)}<td><button className={`availability ${s.unavailable ? "out" : ""}`} onClick={() => update(s.id, { unavailable: !s.unavailable })}>{s.unavailable ? "Out" : "Ready"}</button></td><td><div className="exclude-events">{EVENTS.map(event => { const excluded = (s.excludedEvents || []).includes(event.key); return <button key={event.key} className={excluded ? "excluded" : ""} aria-pressed={excluded} aria-label={`${excluded ? "Allow" : "Exclude"} ${s.name} ${event.name}`} title={event.short} onClick={() => update(s.id, { excludedEvents: excluded ? (s.excludedEvents || []).filter(key => key !== event.key) : [...(s.excludedEvents || []), event.key] })}>{event.key === "medley" ? "M" : event.key === "free200" ? "2F" : "4F"}</button>})}</div></td><td><select value={s.lockEvent} aria-label={`${s.name} relay lock`} onChange={e => update(s.id, { lockEvent: e.target.value as EventKey | "", lockStroke: "" })}><option value="">None</option>{EVENTS.map(e => <option key={e.key} value={e.key}>{e.short}</option>)}</select></td><td><select disabled={!s.lockEvent} value={s.lockTeam} onChange={e => update(s.id, { lockTeam: Number(e.target.value) })}>{[1,2,3,4].map(n => <option key={n} value={n}>{String.fromCharCode(64+n)}</option>)}</select></td><td><select disabled={s.lockEvent !== "medley"} value={s.lockStroke} onChange={e => update(s.id, { lockStroke: e.target.value as StrokeKey | "" })}><option value="">Any</option>{STROKES.slice(0,4).map(st => <option key={st.key} value={st.key}>{st.short}</option>)}</select></td></tr>)}</tbody></table></div>
         <p className="hint">Times are in seconds. Swipe or scroll the table sideways on smaller screens. Changes save automatically to this device. CSV imports replace each roster included in the file.</p>
         {rosterMessage && <p className="roster-message" role="status">{rosterMessage}</p>}

@@ -20,6 +20,8 @@ test("renders the Lane Lines relay optimizer with the complete optimizer shell",
   assert.match(html, /Women[\s\S]{0,20}’s roster/);
   assert.match(html, /Optimize full meet/);
   assert.match(html, /Import CSV/);
-  assert.match(html, /Save setup/);
+  assert.match(html, /Open setup/);
+  assert.match(html, />Save</);
+  assert.match(html, /Save As/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/);
 });
