@@ -326,9 +326,9 @@ export default function Home() {
   const spread = useMemo(() => results.flatMap(r => r.teams).length ? Math.max(...results.flatMap(r => r.teams).map(t => t.total)) - Math.min(...results.flatMap(r => r.teams).map(t => t.total)) : 0, [results]);
 
   return <main>
-    <header className="topbar"><div className="brand"><span className="mark">RR</span><span>Relay Room</span></div><div className="save"><span className={saved ? "dot" : "dot pending"}/>{saved ? "Saved on this device" : "Saving changes…"}</div></header>
+    <header className="topbar"><div className="brand"><span className="mark" aria-hidden="true">≋</span><span className="brand-copy"><span>Lane Lines</span><small>Relay Optimizer</small></span></div><div className="save"><span className={saved ? "dot" : "dot pending"}/>{saved ? "Saved on this device" : "Saving changes…"}</div></header>
     <section className="hero">
-      <div><p className="eyebrow">MEET DAY, SORTED</p><h1>Build the right relay.<br/><em>Every time.</em></h1><p className="lede">Turn your roster into fast, fair, rule-ready relay teams in seconds.</p></div>
+      <div><p className="eyebrow">LANE LINES · MEET TOOLS</p><h1>Build the right relay.<br/><em>Every time.</em></h1><p className="lede">Turn your roster into fast, fair, rule-ready relay teams in seconds.</p></div>
       <div className="hero-stats"><div><b>{roster.filter(s => !s.unavailable).length}</b><span>eligible swimmers</span></div><div><b>{events.length}</b><span>relay events</span></div><div><b>{teamCount}</b><span>teams per event</span></div></div>
     </section>
     <section className="workspace">
@@ -353,6 +353,6 @@ export default function Home() {
       {warning && <div className="warning">⚠ {warning} Try fewer teams, a higher appearance cap, or make more swimmers available.</div>}
       {!results.length ? <div className="empty"><div>↗</div><p>Select your meet setup, check the roster, then optimize.</p></div> : <div className="relay-list">{results.map(result => <article key={result.event} className="relay-block"><div className="relay-title"><h3>{eventName(result.event)}</h3><span>{result.teams.length} teams · fastest projected time highlighted</span></div><div className="team-grid">{result.teams.map((team, ti) => <div className={`team-card ${ti === 0 && mode === "ranked" ? "top" : ""}`} key={team.label}><div className="team-top"><div><span>TEAM</span><b>{team.label}</b></div><strong>{team.legs.length === 4 ? fmt(team.total) : "Incomplete"}</strong></div><ol>{team.legs.map((leg, i) => <li key={`${leg.swimmer.id}-${i}`}><span className="legnum">{i+1}</span><div><b>{leg.swimmer.name}</b><small>{strokeName(leg.stroke)}</small></div><time>{leg.time.toFixed(2)}</time></li>)}</ol></div>)}</div></article>)}</div>}
     </section>
-    <footer><div className="brand"><span className="mark">RR</span><span>Relay Room</span></div><p>Built for coaches. Data stays on your device.</p></footer>
+    <footer><div className="brand"><span className="mark" aria-hidden="true">≋</span><span className="brand-copy"><span>Lane Lines</span><small>Relay Optimizer</small></span></div><p>Built for coaches. Data stays on your device.</p></footer>
   </main>;
 }

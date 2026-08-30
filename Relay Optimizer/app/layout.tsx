@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Relay Room — Swimming Relay Optimizer",
+  title: "Relay Optimizer · Lane Lines",
   description: "Build fast, fair, rule-ready swimming relay lineups for your full meet.",
 };
 

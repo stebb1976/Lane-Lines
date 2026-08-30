@@ -10,12 +10,12 @@ async function render() {
   }, { waitUntil() {}, passThroughOnException() {} });
 }
 
-test("renders Relay Room with the complete optimizer shell", async () => {
+test("renders the Lane Lines relay optimizer with the complete optimizer shell", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
-  assert.match(html, /<title>Relay Room/);
+  assert.match(html, /<title>Relay Optimizer · Lane Lines/);
   assert.match(html, /Build the right relay/);
   assert.match(html, /Girls[\s\S]{0,20}’ roster/);
   assert.match(html, /Optimize full meet/);
