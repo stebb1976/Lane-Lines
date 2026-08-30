@@ -69,7 +69,7 @@ button{cursor:pointer}
 .roster input:focus,.roster select:focus{outline:0;border-color:var(--blue);background:#f4fbfc}
 .roster input.name{width:110px;font-weight:700}
 .roster select{width:68px}
-.roster td:last-child select:disabled{border-color:#e1e4df;background:#e7eae6;color:#9aa29e;opacity:1;cursor:not-allowed}
+.roster select:disabled{border-color:#d5dce0;background:#e7ebed;color:#8c989f;opacity:1;cursor:not-allowed}
 .roster th:first-child,.roster td:first-child{position:sticky;left:0;z-index:2;background:white;box-shadow:1px 0 0 var(--line)}
 .roster th:first-child{z-index:3;background:#f3f5ef}
 .roster tr.muted{opacity:.45}
