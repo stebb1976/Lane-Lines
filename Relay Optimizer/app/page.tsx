@@ -303,7 +303,7 @@ export default function Home() {
   const [rosterMessage, setRosterMessage] = useState("");
   const importInput = useRef<HTMLInputElement>(null);
   const setupInput = useRef<HTMLInputElement>(null);
-  const setupHandle = useRef<SetupFileHandle | null>(null);
+  const setupHandles = useRef<Record<Gender, SetupFileHandle | null>>({ Women: null, Men: null });
   useEffect(() => { const raw = localStorage.getItem("relay-room-roster"); if (raw) try { setSwimmers(JSON.parse(raw).map((s: Swimmer & { gender: Gender | "Girls" | "Boys" }) => ({ ...s, gender: s.gender === "Girls" ? "Women" : s.gender === "Boys" ? "Men" : s.gender }))); } catch {} }, []);
   useEffect(() => { if (!saved) { const timer = setTimeout(() => { localStorage.setItem("relay-room-roster", JSON.stringify(swimmers)); setSaved(true); }, 400); return () => clearTimeout(timer); } }, [swimmers, saved]);
   const roster = swimmers.filter(s => s.gender === gender);
@@ -323,22 +323,23 @@ export default function Home() {
     link.href = url; link.download = suggestedSetupName(); link.click(); URL.revokeObjectURL(url);
     setRosterMessage(`Saved both rosters and the current optimizer selections to ${link.download}.`);
   };
-  const saveToHandle = async (handle: SetupFileHandle, contents: string) => {
+  const saveToHandle = async (handle: SetupFileHandle, contents: string, rosterGender: Gender) => {
     const writable = await handle.createWritable(); await writable.write(contents); await writable.close();
-    setupHandle.current = handle; setRosterMessage(`Saved setup to ${handle.name}.`);
+    setupHandles.current[rosterGender] = handle; setRosterMessage(`Saved ${rosterGender.toLowerCase()}’s setup to ${handle.name}.`);
   };
   const saveAsSetup = async () => {
     const contents = setupJson(); const picker = (window as PickerWindow).showSaveFilePicker;
     if (!picker) return downloadSetup(contents);
     try {
       const handle = await picker.call(window, { suggestedName: suggestedSetupName(), types: [{ description: "Relay Optimizer setup", accept: { "application/json": [".json"] } }] });
-      await saveToHandle(handle, contents);
+      await saveToHandle(handle, contents, gender);
     } catch (error) { if ((error as Error).name !== "AbortError") setRosterMessage("The setup could not be saved."); }
   };
   const saveSetup = async () => {
-    if (!setupHandle.current) return saveAsSetup();
-    try { await saveToHandle(setupHandle.current, setupJson()); }
-    catch { setupHandle.current = null; setRosterMessage("That file is no longer available. Choose Save As to select it again."); }
+    const handle = setupHandles.current[gender];
+    if (!handle) return saveAsSetup();
+    try { await saveToHandle(handle, setupJson(), gender); }
+    catch { setupHandles.current[gender] = null; setRosterMessage(`The ${gender.toLowerCase()}’s setup file is no longer available. Choose Save As to select it again.`); }
   };
   const applySetup = (raw: string, handle?: SetupFileHandle) => {
     const data = JSON.parse(raw) as SetupFile;
@@ -346,7 +347,7 @@ export default function Home() {
     const migrated = data.swimmers.map(s => ({ ...s, gender: (s.gender as Gender | "Girls" | "Boys") === "Girls" ? "Women" as const : (s.gender as Gender | "Girls" | "Boys") === "Boys" ? "Men" as const : s.gender }));
     const activeRoster = (data.activeRoster as Gender | "Girls" | "Boys") === "Girls" ? "Women" : (data.activeRoster as Gender | "Girls" | "Boys") === "Boys" ? "Men" : data.activeRoster;
     setSwimmers(migrated); setGender(activeRoster); setEvents(data.selections.events); setTeamCount(data.selections.teamCount); setMode(data.selections.mode); setCap(data.selections.maximumAppearances); setResults([]); setWarning(""); setSaved(false);
-    setupHandle.current = handle || null; setRosterMessage(`Opened setup${handle?.name ? ` from ${handle.name}` : ""}.`);
+    setupHandles.current[activeRoster] = handle || null; setRosterMessage(`Opened ${activeRoster.toLowerCase()}’s setup${handle?.name ? ` from ${handle.name}` : ""}.`);
   };
   const openSetup = async () => {
     const picker = (window as PickerWindow).showOpenFilePicker;
