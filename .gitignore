@@ -9,4 +9,5 @@ build/
 .env.*
 !.env.example
 ll_project.json
-/Relay Optimizer/
+/.relay-optimizer-sites-git/
+/Relay Optimizer/tests/rendered-html.test 2.mjs
