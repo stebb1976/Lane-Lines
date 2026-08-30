@@ -17,9 +17,9 @@ test("renders the Lane Lines relay optimizer with the complete optimizer shell",
   const html = await response.text();
   assert.match(html, /<title>Relay Optimizer · Lane Lines/);
   assert.match(html, /Build the right relay/);
-  assert.match(html, /Girls[\s\S]{0,20}’ roster/);
+  assert.match(html, /Women[\s\S]{0,20}’s roster/);
   assert.match(html, /Optimize full meet/);
   assert.match(html, /Import CSV/);
-  assert.match(html, /Export rosters/);
+  assert.match(html, /Save setup/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/);
 });

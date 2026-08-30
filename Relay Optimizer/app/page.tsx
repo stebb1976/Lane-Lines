@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-type Gender = "Girls" | "Boys";
+type Gender = "Women" | "Men";
 type EventKey = "medley" | "free200" | "free400";
 type StrokeKey = "back" | "breast" | "fly" | "free50" | "free100";
 type Mode = "ranked" | "balanced";
@@ -26,8 +26,8 @@ const sample = (gender: Gender, names: string[], offset: number): Swimmer[] => n
   times: { back: 27.8 + i * .72 + offset, breast: 30.1 + i * .82 + offset, fly: 26.9 + i * .68 + offset, free50: 24.4 + i * .57 + offset, free100: 53.2 + i * 1.21 + offset },
 }));
 const INITIAL = [
-  ...sample("Girls", ["Maya Chen", "Olivia Brooks", "Sofia Ramirez", "Avery Walker", "Emma Patel", "Chloe Martin", "Zoe Thompson", "Lily Nguyen", "Grace Kim", "Nora Davis", "Isla Robinson", "Mia Johnson", "Ruby Wilson", "Ella Garcia", "Lucy Taylor", "Aria Brown"], 2.1),
-  ...sample("Boys", ["Liam Carter", "Noah Williams", "Ethan Lee", "Lucas Martinez", "Mason Clark", "James Anderson", "Henry Moore", "Leo Jackson", "Jack Harris", "Owen White", "Caleb Lewis", "Wyatt Young", "Miles Hall", "Theo Allen", "Eli King", "Finn Wright"], 0),
+  ...sample("Women", ["Maya Chen", "Olivia Brooks", "Sofia Ramirez", "Avery Walker", "Emma Patel", "Chloe Martin", "Zoe Thompson", "Lily Nguyen", "Grace Kim", "Nora Davis", "Isla Robinson", "Mia Johnson", "Ruby Wilson", "Ella Garcia", "Lucy Taylor", "Aria Brown"], 2.1),
+  ...sample("Men", ["Liam Carter", "Noah Williams", "Ethan Lee", "Lucas Martinez", "Mason Clark", "James Anderson", "Henry Moore", "Leo Jackson", "Jack Harris", "Owen White", "Caleb Lewis", "Wyatt Young", "Miles Hall", "Theo Allen", "Eli King", "Finn Wright"], 0),
 ];
 
 const fmt = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toFixed(2).padStart(5, "0")}`;
@@ -77,7 +77,7 @@ export function rosterFromCsv(text: string, fallbackGender: Gender): Swimmer[] {
   if ([columns.name, columns.back, columns.breast, columns.fly, columns.free50, columns.free100].some(index => index < 0)) throw new Error("Use the exported column headings for swimmer and all five times.");
   const imported = rows.slice(1).map((values, index) => {
     const rawGender = columns.gender >= 0 ? values[columns.gender]?.toLowerCase() : "";
-    const gender: Gender = rawGender.startsWith("b") || rawGender.startsWith("m") ? "Boys" : rawGender.startsWith("g") || rawGender.startsWith("f") ? "Girls" : fallbackGender;
+    const gender: Gender = rawGender.startsWith("b") || rawGender.startsWith("m") ? "Men" : rawGender.startsWith("g") || rawGender.startsWith("f") || rawGender.startsWith("w") ? "Women" : fallbackGender;
     const name = values[columns.name]?.trim();
     const times = { back: parseTime(values[columns.back] || ""), breast: parseTime(values[columns.breast] || ""), fly: parseTime(values[columns.fly] || ""), free50: parseTime(values[columns.free50] || ""), free100: parseTime(values[columns.free100] || "") };
     if (!name || Object.values(times).some(value => !Number.isFinite(value))) throw new Error(`Check swimmer row ${index + 2}. Every swimmer needs a name and five valid times.`);
@@ -286,7 +286,7 @@ function optimize(roster: Swimmer[], selected: EventKey[], teamCount: number, mo
 
 export default function Home() {
   const [swimmers, setSwimmers] = useState<Swimmer[]>(INITIAL);
-  const [gender, setGender] = useState<Gender>("Girls");
+  const [gender, setGender] = useState<Gender>("Women");
   const [events, setEvents] = useState<EventKey[]>(["medley", "free200", "free400"]);
   const [teamCount, setTeamCount] = useState(2);
   const [mode, setMode] = useState<Mode>("ranked");
@@ -296,7 +296,7 @@ export default function Home() {
   const [saved, setSaved] = useState(true);
   const [rosterMessage, setRosterMessage] = useState("");
   const importInput = useRef<HTMLInputElement>(null);
-  useEffect(() => { const raw = localStorage.getItem("relay-room-roster"); if (raw) try { setSwimmers(JSON.parse(raw)); } catch {} }, []);
+  useEffect(() => { const raw = localStorage.getItem("relay-room-roster"); if (raw) try { setSwimmers(JSON.parse(raw).map((s: Swimmer & { gender: Gender | "Girls" | "Boys" }) => ({ ...s, gender: s.gender === "Girls" ? "Women" : s.gender === "Boys" ? "Men" : s.gender }))); } catch {} }, []);
   useEffect(() => { if (!saved) { const timer = setTimeout(() => { localStorage.setItem("relay-room-roster", JSON.stringify(swimmers)); setSaved(true); }, 400); return () => clearTimeout(timer); } }, [swimmers, saved]);
   const roster = swimmers.filter(s => s.gender === gender);
   const update = (id: string, patch: Partial<Swimmer>) => { setSwimmers(all => all.map(s => s.id === id ? { ...s, ...patch } : s)); setSaved(false); };
@@ -307,11 +307,12 @@ export default function Home() {
   });
   const run = () => { const out = optimize(roster, events, teamCount, mode, cap); setResults(out.results); setWarning(out.warning); document.getElementById("results")?.scrollIntoView({ behavior: "smooth" }); };
   const add = () => { const n: Swimmer = { id: crypto.randomUUID(), name: "New swimmer", gender, unavailable: false, excludedEvents: [], lockEvent: "", lockTeam: 1, lockStroke: "", times: { back: 30, breast: 33, fly: 29, free50: 27, free100: 59 } }; setSwimmers(s => [...s, n]); setSaved(false); };
-  const exportRoster = () => {
-    const blob = new Blob([rosterToCsv(swimmers)], { type: "text/csv;charset=utf-8" });
+  const saveSetup = () => {
+    const setup = { version: 1, savedAt: new Date().toISOString(), activeRoster: gender, selections: { events, teamCount, mode, maximumAppearances: cap }, swimmers };
+    const blob = new Blob([JSON.stringify(setup, null, 2)], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob); const link = document.createElement("a");
-    link.href = url; link.download = "relay-room-rosters.csv"; link.click(); URL.revokeObjectURL(url);
-    setRosterMessage(`Exported ${swimmers.length} swimmers from both rosters.`);
+    link.href = url; link.download = gender === "Women" ? "womens_relay_optimizer.json" : "mens_relay_optimizer.json"; link.click(); URL.revokeObjectURL(url);
+    setRosterMessage(`Saved both rosters and the current optimizer selections to ${link.download}.`);
   };
   const importRoster = async (file?: File) => {
     if (!file) return;
@@ -334,7 +335,7 @@ export default function Home() {
     <section className="workspace">
       <div className="controls card">
         <div className="section-title"><span>01</span><div><h2>Meet setup</h2><p>Choose how today’s relays should run.</p></div></div>
-        <label>Roster</label><div className="segmented"><button className={gender === "Girls" ? "active" : ""} onClick={() => { setGender("Girls"); setResults([]); }}>Girls</button><button className={gender === "Boys" ? "active" : ""} onClick={() => { setGender("Boys"); setResults([]); }}>Boys</button></div>
+        <label>Roster</label><div className="segmented"><button className={gender === "Women" ? "active" : ""} onClick={() => { setGender("Women"); setResults([]); }}>Women</button><button className={gender === "Men" ? "active" : ""} onClick={() => { setGender("Men"); setResults([]); }}>Men</button></div>
         <label>Relay events · priority order</label><div className="event-checks">{[...events.map(key => EVENTS.find(e => e.key === key)!), ...EVENTS.filter(e => !events.includes(e.key))].map(e => { const priority = events.indexOf(e.key); return <div className={`event-row ${priority >= 0 ? "chosen" : ""}`} key={e.key}><button className="event-toggle" onClick={() => setEvents(v => v.includes(e.key) ? v.filter(x => x !== e.key) : [...v, e.key])}><span>{priority >= 0 ? priority + 1 : "+"}</span>{e.short}</button>{priority >= 0 && <div className="event-order"><button aria-label={`Move ${e.short} up`} disabled={priority === 0} onClick={() => moveEvent(e.key, -1)}>↑</button><button aria-label={`Move ${e.short} down`} disabled={priority === events.length - 1} onClick={() => moveEvent(e.key, 1)}>↓</button></div>}</div>})}</div>
         <label>Teams per event</label><div className="number-row">{[1,2,3,4].map(n => <button key={n} className={teamCount === n ? "active" : ""} onClick={() => setTeamCount(n)}>{n}<small>{String.fromCharCode(64+n)}</small></button>)}</div>
         <label>Optimization goal</label><div className="mode-cards"><button className={mode === "ranked" ? "active" : ""} onClick={() => setMode("ranked")}><b>Ranked</b><span>Fastest total time across every lineup</span></button><button className={mode === "balanced" ? "active" : ""} onClick={() => setMode("balanced")}><b>Balanced</b><span>Fastest swimmer pool, balanced across teams</span></button></div>
@@ -342,7 +343,7 @@ export default function Home() {
         <button className="optimize" onClick={run} disabled={!events.length}>Optimize full meet <span>→</span></button>
       </div>
       <div className="roster card">
-        <div className="section-title roster-head"><span>02</span><div><h2>{gender}’ roster</h2><p>Edit seed times, availability, exclusions, and relay locks.</p></div><div className="roster-actions"><input ref={importInput} type="file" accept=".csv,text/csv" aria-label="Import roster CSV" onChange={e => importRoster(e.target.files?.[0])}/><button onClick={() => importInput.current?.click()}>Import CSV</button><button onClick={exportRoster}>Export rosters</button><button className="add-swimmer" onClick={add}>＋ Add swimmer</button></div></div>
+        <div className="section-title roster-head"><span>02</span><div><h2>{gender}’s roster</h2><p>Edit seed times, availability, exclusions, and relay locks.</p></div><div className="roster-actions"><input ref={importInput} type="file" accept=".csv,text/csv" aria-label="Import roster CSV" onChange={e => importRoster(e.target.files?.[0])}/><button onClick={() => importInput.current?.click()}>Import CSV</button><button onClick={saveSetup}>Save setup</button><button className="add-swimmer" onClick={add}>＋ Add swimmer</button></div></div>
         <div className="table-wrap"><table><thead><tr><th>Swimmer</th>{STROKES.map(s => <th key={s.key}>{s.label}</th>)}<th>Availability</th><th>Exclude from</th><th>Relay lock</th><th>Team</th><th>Stroke</th></tr></thead><tbody>{roster.map(s => <tr key={s.id} className={s.unavailable ? "muted" : ""}><td><input className="name" value={s.name} aria-label="Swimmer name" onChange={e => update(s.id, { name: e.target.value })}/></td>{STROKES.map(st => <td key={st.key}><TimeInput value={s.times[st.key]} label={`${s.name} ${st.label}`} onCommit={value => update(s.id, { times: { ...s.times, [st.key]: value } })}/></td>)}<td><button className={`availability ${s.unavailable ? "out" : ""}`} onClick={() => update(s.id, { unavailable: !s.unavailable })}>{s.unavailable ? "Out" : "Ready"}</button></td><td><div className="exclude-events">{EVENTS.map(event => { const excluded = (s.excludedEvents || []).includes(event.key); return <button key={event.key} className={excluded ? "excluded" : ""} aria-pressed={excluded} aria-label={`${excluded ? "Allow" : "Exclude"} ${s.name} ${event.name}`} title={event.short} onClick={() => update(s.id, { excludedEvents: excluded ? (s.excludedEvents || []).filter(key => key !== event.key) : [...(s.excludedEvents || []), event.key] })}>{event.key === "medley" ? "M" : event.key === "free200" ? "2F" : "4F"}</button>})}</div></td><td><select value={s.lockEvent} aria-label={`${s.name} relay lock`} onChange={e => update(s.id, { lockEvent: e.target.value as EventKey | "", lockStroke: "" })}><option value="">None</option>{EVENTS.map(e => <option key={e.key} value={e.key}>{e.short}</option>)}</select></td><td><select disabled={!s.lockEvent} value={s.lockTeam} onChange={e => update(s.id, { lockTeam: Number(e.target.value) })}>{[1,2,3,4].map(n => <option key={n} value={n}>{String.fromCharCode(64+n)}</option>)}</select></td><td><select disabled={s.lockEvent !== "medley"} value={s.lockStroke} onChange={e => update(s.id, { lockStroke: e.target.value as StrokeKey | "" })}><option value="">Any</option>{STROKES.slice(0,4).map(st => <option key={st.key} value={st.key}>{st.short}</option>)}</select></td></tr>)}</tbody></table></div>
         <p className="hint">Times are in seconds. Swipe or scroll the table sideways on smaller screens. Changes save automatically to this device. CSV imports replace each roster included in the file.</p>
         {rosterMessage && <p className="roster-message" role="status">{rosterMessage}</p>}
