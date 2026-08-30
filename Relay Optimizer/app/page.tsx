@@ -10,7 +10,7 @@ type Swimmer = { id: string; name: string; gender: Gender; times: Record<StrokeK
 type Leg = { stroke: StrokeKey; swimmer: Swimmer; time: number };
 type RelayTeam = { label: string; legs: Leg[]; total: number };
 type RelayResult = { event: EventKey; teams: RelayTeam[] };
-type SetupFile = { version: number; savedAt: string; activeRoster: Gender; selections: { events: EventKey[]; teamCount: number; mode: Mode; maximumAppearances: number }; swimmers: Swimmer[] };
+type SetupFile = { version: number; savedAt: string; optimizationName?: string; activeRoster: Gender; selections: { events: EventKey[]; teamCount: number; mode: Mode; maximumAppearances: number }; swimmers: Swimmer[] };
 type SetupFileHandle = { name: string; getFile: () => Promise<File>; createWritable: () => Promise<{ write: (contents: string) => Promise<void>; close: () => Promise<void> }> };
 type PickerWindow = Window & {
   showOpenFilePicker?: (options: object) => Promise<SetupFileHandle[]>;
@@ -297,6 +297,7 @@ export default function Home() {
   const [teamCount, setTeamCount] = useState(2);
   const [mode, setMode] = useState<Mode>("ranked");
   const [cap, setCap] = useState(2);
+  const [optimizationNames, setOptimizationNames] = useState<Record<Gender, string>>({ Women: "Women's Relay Optimizer", Men: "Men's Relay Optimizer" });
   const [results, setResults] = useState<RelayResult[]>([]);
   const [warning, setWarning] = useState("");
   const [saved, setSaved] = useState(true);
@@ -305,7 +306,8 @@ export default function Home() {
   const setupInput = useRef<HTMLInputElement>(null);
   const setupHandles = useRef<Record<Gender, SetupFileHandle | null>>({ Women: null, Men: null });
   useEffect(() => { const raw = localStorage.getItem("relay-room-roster"); if (raw) try { setSwimmers(JSON.parse(raw).map((s: Swimmer & { gender: Gender | "Girls" | "Boys" }) => ({ ...s, gender: s.gender === "Girls" ? "Women" : s.gender === "Boys" ? "Men" : s.gender }))); } catch {} }, []);
-  useEffect(() => { if (!saved) { const timer = setTimeout(() => { localStorage.setItem("relay-room-roster", JSON.stringify(swimmers)); setSaved(true); }, 400); return () => clearTimeout(timer); } }, [swimmers, saved]);
+  useEffect(() => { const raw = localStorage.getItem("relay-room-optimization-names"); if (raw) try { setOptimizationNames(current => ({ ...current, ...JSON.parse(raw) })); } catch {} }, []);
+  useEffect(() => { if (!saved) { const timer = setTimeout(() => { localStorage.setItem("relay-room-roster", JSON.stringify(swimmers)); localStorage.setItem("relay-room-optimization-names", JSON.stringify(optimizationNames)); setSaved(true); }, 400); return () => clearTimeout(timer); } }, [swimmers, optimizationNames, saved]);
   const roster = swimmers.filter(s => s.gender === gender);
   const update = (id: string, patch: Partial<Swimmer>) => { setSwimmers(all => all.map(s => s.id === id ? { ...s, ...patch } : s)); setSaved(false); };
   const moveEvent = (eventKey: EventKey, direction: -1 | 1) => setEvents(current => {
@@ -315,8 +317,13 @@ export default function Home() {
   });
   const run = () => { const out = optimize(roster, events, teamCount, mode, cap); setResults(out.results); setWarning(out.warning); document.getElementById("results")?.scrollIntoView({ behavior: "smooth" }); };
   const add = () => { const n: Swimmer = { id: crypto.randomUUID(), name: "New swimmer", gender, unavailable: false, excludedEvents: [], lockEvent: "", lockTeam: 1, lockStroke: "", times: { back: 30, breast: 33, fly: 29, free50: 27, free100: 59 } }; setSwimmers(s => [...s, n]); setSaved(false); };
-  const setupJson = () => JSON.stringify({ version: 1, savedAt: new Date().toISOString(), activeRoster: gender, selections: { events, teamCount, mode, maximumAppearances: cap }, swimmers }, null, 2);
-  const suggestedSetupName = () => gender === "Women" ? "womens_relay_optimizer.json" : "mens_relay_optimizer.json";
+  const setupJson = () => JSON.stringify({ version: 1, savedAt: new Date().toISOString(), optimizationName: optimizationNames[gender], activeRoster: gender, selections: { events, teamCount, mode, maximumAppearances: cap }, swimmers }, null, 2);
+  const suggestedSetupName = () => {
+    const name = optimizationNames[gender].trim();
+    if (!name || name === "Women's Relay Optimizer" || name === "Men's Relay Optimizer") return gender === "Women" ? "womens_relay_optimizer.json" : "mens_relay_optimizer.json";
+    const safe = name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+    return `${safe || (gender === "Women" ? "womens_relay_optimizer" : "mens_relay_optimizer")}.json`;
+  };
   const downloadSetup = (contents: string) => {
     const blob = new Blob([contents], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob); const link = document.createElement("a");
@@ -347,6 +354,7 @@ export default function Home() {
     const migrated = data.swimmers.map(s => ({ ...s, gender: (s.gender as Gender | "Girls" | "Boys") === "Girls" ? "Women" as const : (s.gender as Gender | "Girls" | "Boys") === "Boys" ? "Men" as const : s.gender }));
     const activeRoster = (data.activeRoster as Gender | "Girls" | "Boys") === "Girls" ? "Women" : (data.activeRoster as Gender | "Girls" | "Boys") === "Boys" ? "Men" : data.activeRoster;
     setSwimmers(migrated); setGender(activeRoster); setEvents(data.selections.events); setTeamCount(data.selections.teamCount); setMode(data.selections.mode); setCap(data.selections.maximumAppearances); setResults([]); setWarning(""); setSaved(false);
+    if (data.optimizationName?.trim()) setOptimizationNames(current => ({ ...current, [activeRoster]: data.optimizationName!.trim() }));
     setupHandles.current[activeRoster] = handle || null; setRosterMessage(`Opened ${activeRoster.toLowerCase()}’s setup${handle?.name ? ` from ${handle.name}` : ""}.`);
   };
   const openSetup = async () => {
@@ -382,6 +390,7 @@ export default function Home() {
       <div className="controls card">
         <div className="section-title"><span>01</span><div><h2>Meet setup</h2><p>Choose how today’s relays should run.</p></div></div>
         <label>Roster</label><div className="segmented"><button className={gender === "Women" ? "active" : ""} onClick={() => { setGender("Women"); setResults([]); }}>Women</button><button className={gender === "Men" ? "active" : ""} onClick={() => { setGender("Men"); setResults([]); }}>Men</button></div>
+        <label htmlFor="optimization-name">Optimization name</label><input id="optimization-name" className="optimization-name" value={optimizationNames[gender]} maxLength={80} onChange={e => { setOptimizationNames(current => ({ ...current, [gender]: e.target.value })); setSaved(false); }} />
         <label>Relay events · priority order</label><div className="event-checks">{[...events.map(key => EVENTS.find(e => e.key === key)!), ...EVENTS.filter(e => !events.includes(e.key))].map(e => { const priority = events.indexOf(e.key); return <div className={`event-row ${priority >= 0 ? "chosen" : ""}`} key={e.key}><button className="event-toggle" onClick={() => setEvents(v => v.includes(e.key) ? v.filter(x => x !== e.key) : [...v, e.key])}><span>{priority >= 0 ? priority + 1 : "+"}</span>{e.short}</button>{priority >= 0 && <div className="event-order"><button aria-label={`Move ${e.short} up`} disabled={priority === 0} onClick={() => moveEvent(e.key, -1)}>↑</button><button aria-label={`Move ${e.short} down`} disabled={priority === events.length - 1} onClick={() => moveEvent(e.key, 1)}>↓</button></div>}</div>})}</div>
         <label>Teams per event</label><div className="number-row">{[1,2,3,4].map(n => <button key={n} className={teamCount === n ? "active" : ""} onClick={() => setTeamCount(n)}>{n}<small>{String.fromCharCode(64+n)}</small></button>)}</div>
         <label>Optimization goal</label><div className="mode-cards"><button className={mode === "ranked" ? "active" : ""} onClick={() => setMode("ranked")}><b>Ranked</b><span>Fastest total time across every lineup</span></button><button className={mode === "balanced" ? "active" : ""} onClick={() => setMode("balanced")}><b>Balanced</b><span>Fastest swimmer pool, balanced across teams</span></button></div>
@@ -396,7 +405,7 @@ export default function Home() {
       </div>
     </section>
     <section id="results" className="results-section">
-      <div className="results-head"><div><p className="eyebrow">THE LINEUP</p><h2>{results.length ? `${gender} · ${mode === "ranked" ? "Ranked" : "Balanced"} teams` : "Your optimized relays will appear here"}</h2></div>{results.length > 0 && <div className="result-meta"><span>{cap} max appearances</span>{mode === "balanced" && <span>{spread.toFixed(2)}s total range</span>}</div>}</div>
+      <div className="results-head"><div><p className="eyebrow">THE LINEUP</p><h2>{results.length ? `${optimizationNames[gender] || gender} · ${mode === "ranked" ? "Ranked" : "Balanced"} teams` : "Your optimized relays will appear here"}</h2></div>{results.length > 0 && <div className="result-meta"><span>{cap} max appearances</span>{mode === "balanced" && <span>{spread.toFixed(2)}s total range</span>}</div>}</div>
       {warning && <div className="warning">⚠ {warning} Try fewer teams, a higher appearance cap, or make more swimmers available.</div>}
       {!results.length ? <div className="empty"><div>↗</div><p>Select your meet setup, check the roster, then optimize.</p></div> : <div className="relay-list">{results.map(result => <article key={result.event} className="relay-block"><div className="relay-title"><h3>{eventName(result.event)}</h3><span>{result.teams.length} teams · fastest projected time highlighted</span></div><div className="team-grid">{result.teams.map((team, ti) => <div className={`team-card ${ti === 0 && mode === "ranked" ? "top" : ""}`} key={team.label}><div className="team-top"><div><span>TEAM</span><b>{team.label}</b></div><strong>{team.legs.length === 4 ? fmt(team.total) : "Incomplete"}</strong></div><ol>{team.legs.map((leg, i) => <li key={`${leg.swimmer.id}-${i}`}><span className="legnum">{i+1}</span><div><b>{leg.swimmer.name}</b><small>{strokeName(leg.stroke)}</small></div><time>{leg.time.toFixed(2)}</time></li>)}</ol></div>)}</div></article>)}</div>}
     </section>

@@ -19,6 +19,7 @@ test("renders the Lane Lines relay optimizer with the complete optimizer shell",
   assert.match(html, /Build the right relay/);
   assert.match(html, /Women[\s\S]{0,20}’s roster/);
   assert.match(html, /Optimize full meet/);
+  assert.match(html, /Optimization name/);
   assert.match(html, /Import CSV/);
   assert.match(html, /Open setup/);
   assert.match(html, />Save</);
