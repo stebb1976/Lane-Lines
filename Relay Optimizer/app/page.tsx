@@ -6,11 +6,13 @@ type Gender = "Women" | "Men";
 type EventKey = "medley" | "free200" | "free400";
 type StrokeKey = "back" | "breast" | "fly" | "free50" | "free100";
 type Mode = "ranked" | "balanced";
-type Swimmer = { id: string; name: string; gender: Gender; times: Record<StrokeKey, number>; unavailable: boolean; excludedEvents?: EventKey[]; lockEvent: EventKey | ""; lockTeam: number; lockStroke: StrokeKey | "" };
-type Leg = { stroke: StrokeKey; swimmer: Swimmer; time: number };
+type RelayLock = { event: EventKey; team: number; leg: number };
+type Swimmer = { id: string; name: string; gender: Gender; times: Record<StrokeKey, number>; unavailable: boolean; excludedEvents?: EventKey[]; relayLocks?: RelayLock[]; lockEvent?: EventKey | ""; lockTeam?: number; lockStroke?: StrokeKey | ""; lockLeg?: number | null };
+type Leg = { stroke: StrokeKey; swimmer: Swimmer; time: number; position: number };
 type RelayTeam = { label: string; legs: Leg[]; total: number };
 type RelayResult = { event: EventKey; teams: RelayTeam[] };
-type SetupFile = { version: number; savedAt: string; optimizationName?: string; activeRoster: Gender; selections: { events: EventKey[]; teamCount: number; mode: Mode; maximumAppearances: number }; swimmers: Swimmer[] };
+type SavedRelayResult = { event: EventKey; teams: { label: string; legs: { stroke: StrokeKey; swimmerId: string; position: number }[] }[] };
+type SetupFile = { version: number; savedAt: string; optimizationName?: string; activeRoster: Gender; selections: { events: EventKey[]; teamCount: number; mode: Mode; maximumAppearances: number }; swimmers: Swimmer[]; generatedLineup?: SavedRelayResult[] };
 type SetupFileHandle = { name: string; getFile: () => Promise<File>; createWritable: () => Promise<{ write: (contents: string) => Promise<void>; close: () => Promise<void> }> };
 type PickerWindow = Window & {
   showOpenFilePicker?: (options: object) => Promise<SetupFileHandle[]>;
@@ -28,7 +30,7 @@ const STROKES: { key: StrokeKey; label: string; short: string }[] = [
   { key: "free100", label: "100 Free", short: "100" },
 ];
 const sample = (gender: Gender, names: string[], offset: number): Swimmer[] => names.map((name, i) => ({
-  id: `${gender}-${i}`, name, gender, unavailable: false, excludedEvents: [], lockEvent: "", lockTeam: 1, lockStroke: "",
+  id: `${gender}-${i}`, name, gender, unavailable: false, excludedEvents: [], relayLocks: [],
   times: { back: 27.8 + i * .72 + offset, breast: 30.1 + i * .82 + offset, fly: 26.9 + i * .68 + offset, free50: 24.4 + i * .57 + offset, free100: 53.2 + i * 1.21 + offset },
 }));
 const INITIAL = [
@@ -40,6 +42,13 @@ const fmt = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toFixed(2).padStart
 const eventName = (key: EventKey) => EVENTS.find(e => e.key === key)?.short ?? key;
 const strokeName = (key: StrokeKey) => STROKES.find(s => s.key === key)?.short ?? key;
 const priorityWeight = (selected: EventKey[], eventKey: EventKey) => 10 ** (4 * (selected.length - selected.indexOf(eventKey) - 1));
+const relayLocks = (swimmer: Swimmer): RelayLock[] => {
+  if (swimmer.relayLocks) return swimmer.relayLocks;
+  if (!swimmer.lockEvent) return [];
+  const event = EVENTS.find(item => item.key === swimmer.lockEvent);
+  const leg = swimmer.lockLeg ?? (swimmer.lockStroke ? event?.legs.findIndex(stroke => stroke === swimmer.lockStroke) : -1);
+  return [{ event: swimmer.lockEvent, team: (swimmer.lockTeam || 1) - 1, leg: leg != null && leg >= 0 ? leg : 0 }];
+};
 
 const CSV_HEADERS = ["Gender", "Swimmer", "50 Back", "50 Breast", "50 Fly", "50 Free", "100 Free"];
 const csvCell = (value: string | number) => `"${String(value).replaceAll('"', '""')}"`;
@@ -87,7 +96,7 @@ export function rosterFromCsv(text: string, fallbackGender: Gender): Swimmer[] {
     const name = values[columns.name]?.trim();
     const times = { back: parseTime(values[columns.back] || ""), breast: parseTime(values[columns.breast] || ""), fly: parseTime(values[columns.fly] || ""), free50: parseTime(values[columns.free50] || ""), free100: parseTime(values[columns.free100] || "") };
     if (!name || Object.values(times).some(value => !Number.isFinite(value))) throw new Error(`Check swimmer row ${index + 2}. Every swimmer needs a name and five valid times.`);
-    return { id: crypto.randomUUID(), name, gender, times, unavailable: false, excludedEvents: [], lockEvent: "" as const, lockTeam: 1, lockStroke: "" as const };
+    return { id: crypto.randomUUID(), name, gender, times, unavailable: false, excludedEvents: [], relayLocks: [] };
   });
   if (!imported.length) throw new Error("The CSV does not contain any swimmers.");
   return imported;
@@ -111,6 +120,27 @@ function TimeInput({ value, label, onCommit }: { value: number; label: string; o
     onBlur={commit}
     onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
   />;
+}
+
+function RosterLocks({ swimmer, teamCount, onAdd, onRemove }: { swimmer: Swimmer; teamCount: number; onAdd: (event: EventKey, team: number, leg: number) => void; onRemove: (lock: RelayLock) => void }) {
+  const [event, setEvent] = useState<EventKey>("medley");
+  const [team, setTeam] = useState(0);
+  const [leg, setLeg] = useState(0);
+  const eventInfo = EVENTS.find(item => item.key === event)!;
+  const selectedTeam = Math.min(team, Math.max(0, teamCount - 1));
+  return <div className="roster-locks">
+    <div className="roster-lock-list">{relayLocks(swimmer).map(lock => {
+      const lockedEvent = EVENTS.find(item => item.key === lock.event)!;
+      const position = lock.event === "medley" ? strokeName(lockedEvent.legs[lock.leg]) : `Leg ${lock.leg + 1}`;
+      return <span key={`${lock.event}-${lock.team}-${lock.leg}`}>{eventName(lock.event)} · {String.fromCharCode(65 + lock.team)} · {position}<button aria-label={`Remove ${swimmer.name} ${eventName(lock.event)} team ${String.fromCharCode(65 + lock.team)} ${position} lock`} onClick={() => onRemove(lock)}>×</button></span>;
+    })}</div>
+    <div className="roster-lock-add">
+      <select value={event} aria-label={`${swimmer.name} lock relay`} onChange={e => { setEvent(e.target.value as EventKey); setLeg(0); }}>{EVENTS.map(item => <option key={item.key} value={item.key}>{item.short}</option>)}</select>
+      <select value={selectedTeam} aria-label={`${swimmer.name} lock team`} onChange={e => setTeam(Number(e.target.value))}>{Array.from({ length: teamCount }, (_, index) => <option key={index} value={index}>Team {String.fromCharCode(65 + index)}</option>)}</select>
+      <select value={leg} aria-label={`${swimmer.name} lock position`} onChange={e => setLeg(Number(e.target.value))}>{eventInfo.legs.map((stroke, index) => <option key={index} value={index}>{event === "medley" ? strokeName(stroke) : `Leg ${index + 1}`}</option>)}</select>
+      <button onClick={() => onAdd(event, selectedTeam, leg)}>Lock</button>
+    </div>
+  </div>;
 }
 
 type FlowEdge = { to: number; rev: number; cap: number; cost: number; swimmerId?: string; slotId?: string };
@@ -141,15 +171,19 @@ export function exactRankedOptimize(active: Swimmer[], selected: EventKey[], tea
     };
     active.forEach(s => {
       const remaining = cap - (appearances.get(s.id) || 0);
-      if (remaining <= 0) return;
-      addEdge(source, swimmerNodes.get(s.id)!, remaining, 0);
+      const reservedForLater = relayLocks(s).filter(lock => selected.includes(lock.event) && lock.team > team && lock.team < teamCount).length;
+      const availableNow = remaining - reservedForLater;
+      if (availableNow <= 0) return;
+      addEdge(source, swimmerNodes.get(s.id)!, availableNow, 0);
       selected.forEach(eventKey => {
         if (eventUsed.get(eventKey)!.has(s.id)) return;
         const group = groupNodes.get(`${s.id}-${eventKey}`)!;
         addEdge(swimmerNodes.get(s.id)!, group, 1, 0);
         slots.filter(slot => slot.eventKey === eventKey).forEach(slot => {
-          const lockedElsewhere = s.lockEvent && (s.lockEvent !== eventKey || s.lockTeam !== team + 1 || (eventKey === "medley" && s.lockStroke && s.lockStroke !== slot.stroke));
-          if (!(s.excludedEvents || []).includes(eventKey) && !lockedElsewhere) addEdge(group, slotNodes.get(slot.id)!, 1, Math.round(s.times[slot.stroke] * 100) * priorityWeight(selected, eventKey) - (s.lockEvent ? 1_000_000_000_000_000 : 0), { swimmerId: s.id, slotId: slot.id });
+          const eventLock = relayLocks(s).find(lock => lock.event === eventKey);
+          const lockedElsewhere = eventLock && (eventLock.team !== team || eventLock.leg !== slot.leg);
+          const lockedHere = eventLock && eventLock.team === team && eventLock.leg === slot.leg;
+          if (!(s.excludedEvents || []).includes(eventKey) && !lockedElsewhere) addEdge(group, slotNodes.get(slot.id)!, 1, Math.round(s.times[slot.stroke] * 100) * priorityWeight(selected, eventKey) - (lockedHere ? 1_000_000_000_000_000 : 0), { swimmerId: s.id, slotId: slot.id });
         });
       });
     });
@@ -184,13 +218,13 @@ export function exactRankedOptimize(active: Swimmer[], selected: EventKey[], tea
       }
     });
   }
-  const lockedMissing = active.some(s => s.lockEvent && selected.includes(s.lockEvent) && s.lockTeam <= teamCount && ![...assignments.values()].some(a => a.id === s.id));
+  const lockedMissing = active.some(s => relayLocks(s).some(lock => selected.includes(lock.event) && lock.team < teamCount && assignments.get(`${lock.event}-${lock.team}-${lock.leg}`)?.id !== s.id));
   const results = selected.map(eventKey => {
     const event = EVENTS.find(e => e.key === eventKey)!;
     const teams = Array.from({ length: teamCount }, (_, team) => {
       const legs = event.legs.map((stroke, leg) => {
         const swimmer = assignments.get(`${eventKey}-${team}-${leg}`);
-        return swimmer ? { stroke, swimmer, time: swimmer.times[stroke] } : null;
+        return swimmer ? { stroke, swimmer, time: swimmer.times[stroke], position: leg } : null;
       }).filter((leg): leg is Leg => Boolean(leg));
       return { label: String.fromCharCode(65 + team), legs, total: legs.reduce((sum, leg) => sum + leg.time, 0) };
     });
@@ -226,8 +260,10 @@ export function exactBalancedOptimize(active: Swimmer[], selected: EventKey[], t
       const eventNode = eventNodes.get(`${s.id}-${eventKey}`)!;
       addEdge(swimmerNodes.get(s.id)!, eventNode, 1, 0);
       slots.filter(slot => slot.eventKey === eventKey).forEach(slot => {
-        const lockedElsewhere = s.lockEvent && (s.lockEvent !== eventKey || s.lockTeam !== slot.team + 1 || (eventKey === "medley" && s.lockStroke && s.lockStroke !== slot.stroke));
-        if (!(s.excludedEvents || []).includes(eventKey) && !lockedElsewhere) addEdge(eventNode, slotNodes.get(slot.id)!, 1, Math.round(s.times[slot.stroke] * 100) * priorityWeight(selected, eventKey) - (s.lockEvent ? 1_000_000_000_000_000 : 0), { swimmerId: s.id, slotId: slot.id });
+        const eventLock = relayLocks(s).find(lock => lock.event === eventKey);
+        const lockedElsewhere = eventLock && (eventLock.team !== slot.team || eventLock.leg !== slot.leg);
+        const lockedHere = eventLock && eventLock.team === slot.team && eventLock.leg === slot.leg;
+        if (!(s.excludedEvents || []).includes(eventKey) && !lockedElsewhere) addEdge(eventNode, slotNodes.get(slot.id)!, 1, Math.round(s.times[slot.stroke] * 100) * priorityWeight(selected, eventKey) - (lockedHere ? 1_000_000_000_000_000 : 0), { swimmerId: s.id, slotId: slot.id });
       });
     });
   });
@@ -259,7 +295,7 @@ export function exactBalancedOptimize(active: Swimmer[], selected: EventKey[], t
     const teams = Array.from({ length: teamCount }, (_, team) => {
       const legs = event.legs.map((stroke, leg) => {
         const swimmer = assignments.get(`${eventKey}-${team}-${leg}`);
-        return swimmer ? { stroke, swimmer, time: swimmer.times[stroke] } : null;
+        return swimmer ? { stroke, swimmer, time: swimmer.times[stroke], position: leg } : null;
       }).filter((leg): leg is Leg => Boolean(leg));
       return { label: String.fromCharCode(65 + team), legs, total: legs.reduce((sum, leg) => sum + leg.time, 0) };
     });
@@ -268,7 +304,7 @@ export function exactBalancedOptimize(active: Swimmer[], selected: EventKey[], t
     for (let pass = 0; pass < 12; pass++) for (let a = 0; a < teams.length; a++) for (let b = a + 1; b < teams.length; b++) {
       for (let ai = 0; ai < teams[a].legs.length; ai++) for (let bi = 0; bi < teams[b].legs.length; bi++) {
         const la = teams[a].legs[ai], lb = teams[b].legs[bi];
-        if (la.stroke !== lb.stroke || la.swimmer.lockEvent || lb.swimmer.lockEvent) continue;
+        if (la.stroke !== lb.stroke || relayLocks(la.swimmer).some(lock => lock.event === eventKey) || relayLocks(lb.swimmer).some(lock => lock.event === eventKey)) continue;
         const before = score(), oldA = teams[a].total, oldB = teams[b].total;
         teams[a].legs[ai] = { ...la, swimmer: lb.swimmer, time: lb.time };
         teams[b].legs[bi] = { ...lb, swimmer: la.swimmer, time: la.time };
@@ -280,7 +316,7 @@ export function exactBalancedOptimize(active: Swimmer[], selected: EventKey[], t
     }
     return { event: eventKey, teams };
   });
-  const lockedMissing = active.some(s => s.lockEvent && selected.includes(s.lockEvent) && s.lockTeam <= teamCount && ![...assignments.values()].some(a => a.id === s.id));
+  const lockedMissing = active.some(s => relayLocks(s).some(lock => selected.includes(lock.event) && lock.team < teamCount && assignments.get(`${lock.event}-${lock.team}-${lock.leg}`)?.id !== s.id));
   const warning = flow < slots.length ? `Not enough eligible swimmers to fill every team under the ${cap}-relay cap.` : lockedMissing ? "One or more relay locks conflict with the selected teams or participation cap." : "";
   return { results, warning };
 }
@@ -316,8 +352,82 @@ export default function Home() {
     const next = [...current]; [next[index], next[target]] = [next[target], next[index]]; return next;
   });
   const run = () => { const out = optimize(roster, events, teamCount, mode, cap); setResults(out.results); setWarning(out.warning); document.getElementById("results")?.scrollIntoView({ behavior: "smooth" }); };
-  const add = () => { const n: Swimmer = { id: crypto.randomUUID(), name: "New swimmer", gender, unavailable: false, excludedEvents: [], lockEvent: "", lockTeam: 1, lockStroke: "", times: { back: 30, breast: 33, fly: 29, free50: 27, free100: 59 } }; setSwimmers(s => [...s, n]); setSaved(false); };
-  const setupJson = () => JSON.stringify({ version: 1, savedAt: new Date().toISOString(), optimizationName: optimizationNames[gender], activeRoster: gender, selections: { events, teamCount, mode, maximumAppearances: cap }, swimmers }, null, 2);
+  const add = () => { const n: Swimmer = { id: crypto.randomUUID(), name: "New swimmer", gender, unavailable: false, excludedEvents: [], relayLocks: [], times: { back: 30, breast: 33, fly: 29, free50: 27, free100: 59 } }; setSwimmers(s => [...s, n]); setSaved(false); };
+  const remove = (swimmer: Swimmer) => {
+    if (!window.confirm(`Remove ${swimmer.name || "this swimmer"} from the ${gender.toLowerCase()}’s roster?`)) return;
+    setSwimmers(current => current.filter(s => s.id !== swimmer.id));
+    setResults([]); setWarning(""); setSaved(false); setRosterMessage(`${swimmer.name || "Swimmer"} removed from the roster.`);
+  };
+  const newRoster = () => {
+    if (roster.length && !window.confirm(`Create a new ${gender.toLowerCase()}’s roster? This will remove all ${roster.length} current entries.`)) return;
+    setSwimmers(current => current.filter(s => s.gender !== gender));
+    setupHandles.current[gender] = null;
+    setResults([]); setWarning(""); setSaved(false); setRosterMessage(`New empty ${gender.toLowerCase()}’s roster created. Use Add swimmer or Import CSV to fill it.`);
+  };
+  const toggleLineupLock = (swimmer: Swimmer, eventKey: EventKey, team: number, leg: number) => {
+    const isLockedHere = relayLocks(swimmer).some(lock => lock.event === eventKey && lock.team === team && lock.leg === leg);
+    const next = swimmers.map(s => {
+      let locks = relayLocks(s);
+      if (s.id === swimmer.id) {
+        locks = locks.filter(lock => lock.event !== eventKey);
+        if (!isLockedHere) locks = [...locks, { event: eventKey, team, leg }];
+      } else if (!isLockedHere && s.gender === gender) {
+        locks = locks.filter(lock => lock.event !== eventKey || lock.team !== team || lock.leg !== leg);
+      }
+      return { ...s, relayLocks: locks, lockEvent: "" as const, lockStroke: "" as const, lockLeg: null };
+    });
+    setSwimmers(next); setSaved(false);
+    const out = optimize(next.filter(s => s.gender === gender), events, teamCount, mode, cap);
+    setResults(out.results); setWarning(out.warning);
+    setRosterMessage(`${swimmer.name} ${isLockedHere ? "unlocked from" : "locked into"} ${eventName(eventKey)} team ${String.fromCharCode(65 + team)}, leg ${leg + 1}.`);
+  };
+  const addRosterLock = (swimmer: Swimmer, eventKey: EventKey, team: number, leg: number) => {
+    const next = swimmers.map(s => {
+      let locks = relayLocks(s);
+      if (s.id === swimmer.id) locks = [...locks.filter(lock => lock.event !== eventKey), { event: eventKey, team, leg }];
+      else if (s.gender === gender) locks = locks.filter(lock => lock.event !== eventKey || lock.team !== team || lock.leg !== leg);
+      return { ...s, relayLocks: locks, lockEvent: "" as const, lockStroke: "" as const, lockLeg: null };
+    });
+    setSwimmers(next); setSaved(false);
+    if (results.length) { const out = optimize(next.filter(s => s.gender === gender), events, teamCount, mode, cap); setResults(out.results); setWarning(out.warning); }
+    setRosterMessage(`${swimmer.name} locked into ${eventName(eventKey)} team ${String.fromCharCode(65 + team)}, ${eventKey === "medley" ? strokeName(EVENTS.find(item => item.key === eventKey)!.legs[leg]) : `leg ${leg + 1}`}.`);
+  };
+  const removeRosterLock = (swimmer: Swimmer, lockToRemove: RelayLock) => {
+    const next = swimmers.map(s => s.id !== swimmer.id ? s : { ...s, relayLocks: relayLocks(s).filter(lock => lock.event !== lockToRemove.event || lock.team !== lockToRemove.team || lock.leg !== lockToRemove.leg), lockEvent: "" as const, lockStroke: "" as const, lockLeg: null });
+    setSwimmers(next); setSaved(false);
+    if (results.length) { const out = optimize(next.filter(s => s.gender === gender), events, teamCount, mode, cap); setResults(out.results); setWarning(out.warning); }
+    setRosterMessage(`${swimmer.name}’s ${eventName(lockToRemove.event)} lock removed.`);
+  };
+  const moveFreeLeg = (eventKey: EventKey, teamIndex: number, position: number, direction: -1 | 1) => {
+    if (eventKey === "medley") return;
+    setResults(current => current.map(result => result.event !== eventKey ? result : {
+      ...result,
+      teams: result.teams.map((team, index) => {
+        if (index !== teamIndex) return team;
+        const from = team.legs.findIndex(leg => leg.position === position);
+        const to = team.legs.findIndex(leg => leg.position === position + direction);
+        if (from < 0 || to < 0) return team;
+        const moving = team.legs[from], adjacent = team.legs[to];
+        const movingLocked = relayLocks(moving.swimmer).some(lock => lock.event === eventKey && lock.team === teamIndex && lock.leg === moving.position);
+        const adjacentLocked = relayLocks(adjacent.swimmer).some(lock => lock.event === eventKey && lock.team === teamIndex && lock.leg === adjacent.position);
+        if (movingLocked || adjacentLocked) return team;
+        const legs = [...team.legs];
+        legs[from] = { ...moving, swimmer: adjacent.swimmer, time: adjacent.time };
+        legs[to] = { ...adjacent, swimmer: moving.swimmer, time: moving.time };
+        return { ...team, legs };
+      }),
+    }));
+    setSaved(false); setRosterMessage(`${eventName(eventKey)} team ${String.fromCharCode(65 + teamIndex)} order updated.`);
+  };
+  const setupJson = () => JSON.stringify({
+    version: 2,
+    savedAt: new Date().toISOString(),
+    optimizationName: optimizationNames[gender],
+    activeRoster: gender,
+    selections: { events, teamCount, mode, maximumAppearances: cap },
+    swimmers,
+    generatedLineup: results.map(result => ({ event: result.event, teams: result.teams.map(team => ({ label: team.label, legs: team.legs.map(leg => ({ stroke: leg.stroke, swimmerId: leg.swimmer.id, position: leg.position })) })) })),
+  }, null, 2);
   const suggestedSetupName = () => {
     const name = optimizationNames[gender].trim();
     if (!name || name === "Women's Relay Optimizer" || name === "Men's Relay Optimizer") return gender === "Women" ? "womens_relay_optimizer.json" : "mens_relay_optimizer.json";
@@ -353,9 +463,20 @@ export default function Home() {
     if (!Array.isArray(data.swimmers) || !data.selections || !Array.isArray(data.selections.events)) throw new Error("This is not a valid Relay Optimizer setup file.");
     const migrated = data.swimmers.map(s => ({ ...s, gender: (s.gender as Gender | "Girls" | "Boys") === "Girls" ? "Women" as const : (s.gender as Gender | "Girls" | "Boys") === "Boys" ? "Men" as const : s.gender }));
     const activeRoster = (data.activeRoster as Gender | "Girls" | "Boys") === "Girls" ? "Women" : (data.activeRoster as Gender | "Girls" | "Boys") === "Boys" ? "Men" : data.activeRoster;
-    setSwimmers(migrated); setGender(activeRoster); setEvents(data.selections.events); setTeamCount(data.selections.teamCount); setMode(data.selections.mode); setCap(data.selections.maximumAppearances); setResults([]); setWarning(""); setSaved(false);
+    const swimmerById = new Map(migrated.map(swimmer => [swimmer.id, swimmer]));
+    const restoredLineup = (data.generatedLineup || []).map(result => ({
+      event: result.event,
+      teams: result.teams.map(team => {
+        const legs = team.legs.map(savedLeg => {
+          const swimmer = swimmerById.get(savedLeg.swimmerId);
+          return swimmer ? { stroke: savedLeg.stroke, swimmer, position: savedLeg.position, time: swimmer.times[savedLeg.stroke] } : null;
+        }).filter((leg): leg is Leg => Boolean(leg));
+        return { label: team.label, legs, total: legs.reduce((sum, leg) => sum + leg.time, 0) };
+      }),
+    }));
+    setSwimmers(migrated); setGender(activeRoster); setEvents(data.selections.events); setTeamCount(data.selections.teamCount); setMode(data.selections.mode); setCap(data.selections.maximumAppearances); setResults(restoredLineup); setWarning(""); setSaved(false);
     if (data.optimizationName?.trim()) setOptimizationNames(current => ({ ...current, [activeRoster]: data.optimizationName!.trim() }));
-    setupHandles.current[activeRoster] = handle || null; setRosterMessage(`Opened ${activeRoster.toLowerCase()}’s setup${handle?.name ? ` from ${handle.name}` : ""}.`);
+    setupHandles.current[activeRoster] = handle || null; setRosterMessage(`Opened ${activeRoster.toLowerCase()}’s setup${handle?.name ? ` from ${handle.name}` : ""}${restoredLineup.length ? " with its saved lineup" : ""}.`);
   };
   const openSetup = async () => {
     const picker = (window as PickerWindow).showOpenFilePicker;
@@ -378,6 +499,15 @@ export default function Home() {
     } catch (error) { setRosterMessage(error instanceof Error ? error.message : "That roster could not be imported."); }
     finally { if (importInput.current) importInput.current.value = ""; }
   };
+  const assignments = useMemo(() => {
+    const bySwimmer = new Map<string, string[]>();
+    results.forEach(result => result.teams.forEach((team, teamIndex) => team.legs.forEach(leg => {
+      const position = result.event === "medley" ? strokeName(leg.stroke) : `Leg ${leg.position + 1}`;
+      const label = `${eventName(result.event)} · ${String.fromCharCode(65 + teamIndex)} · ${position}`;
+      bySwimmer.set(leg.swimmer.id, [...(bySwimmer.get(leg.swimmer.id) || []), label]);
+    })));
+    return bySwimmer;
+  }, [results]);
   const spread = useMemo(() => results.flatMap(r => r.teams).length ? Math.max(...results.flatMap(r => r.teams).map(t => t.total)) - Math.min(...results.flatMap(r => r.teams).map(t => t.total)) : 0, [results]);
 
   return <main>
@@ -398,8 +528,8 @@ export default function Home() {
         <button className="optimize" onClick={run} disabled={!events.length}>Optimize full meet <span>→</span></button>
       </div>
       <div className="roster card">
-        <div className="section-title roster-head"><span>02</span><div><h2>{gender}’s roster</h2><p>Edit seed times, availability, exclusions, and relay locks.</p></div><div className="roster-actions"><input ref={importInput} type="file" accept=".csv,text/csv" aria-label="Import roster CSV" onChange={e => importRoster(e.target.files?.[0])}/><input ref={setupInput} type="file" accept=".json,application/json" aria-label="Open relay optimizer setup" onChange={e => openFallbackSetup(e.target.files?.[0])}/><button onClick={() => importInput.current?.click()}>Import CSV</button><button onClick={openSetup}>Open setup</button><button onClick={saveSetup}>Save</button><button onClick={saveAsSetup}>Save As</button><button className="add-swimmer" onClick={add}>＋ Add swimmer</button></div></div>
-        <div className="table-wrap"><table><thead><tr><th>Swimmer</th>{STROKES.map(s => <th key={s.key}>{s.label}</th>)}<th>Availability</th><th>Exclude from</th><th>Relay lock</th><th>Team</th><th>Stroke</th></tr></thead><tbody>{roster.map(s => <tr key={s.id} className={s.unavailable ? "muted" : ""}><td><input className="name" value={s.name} aria-label="Swimmer name" onChange={e => update(s.id, { name: e.target.value })}/></td>{STROKES.map(st => <td key={st.key}><TimeInput value={s.times[st.key]} label={`${s.name} ${st.label}`} onCommit={value => update(s.id, { times: { ...s.times, [st.key]: value } })}/></td>)}<td><button className={`availability ${s.unavailable ? "out" : ""}`} onClick={() => update(s.id, { unavailable: !s.unavailable })}>{s.unavailable ? "Out" : "Ready"}</button></td><td><div className="exclude-events">{EVENTS.map(event => { const excluded = (s.excludedEvents || []).includes(event.key); return <button key={event.key} className={excluded ? "excluded" : ""} aria-pressed={excluded} aria-label={`${excluded ? "Allow" : "Exclude"} ${s.name} ${event.name}`} title={event.short} onClick={() => update(s.id, { excludedEvents: excluded ? (s.excludedEvents || []).filter(key => key !== event.key) : [...(s.excludedEvents || []), event.key] })}>{event.key === "medley" ? "M" : event.key === "free200" ? "2F" : "4F"}</button>})}</div></td><td><select value={s.lockEvent} aria-label={`${s.name} relay lock`} onChange={e => update(s.id, { lockEvent: e.target.value as EventKey | "", lockStroke: "" })}><option value="">None</option>{EVENTS.map(e => <option key={e.key} value={e.key}>{e.short}</option>)}</select></td><td><select disabled={!s.lockEvent} value={s.lockTeam} onChange={e => update(s.id, { lockTeam: Number(e.target.value) })}>{[1,2,3,4].map(n => <option key={n} value={n}>{String.fromCharCode(64+n)}</option>)}</select></td><td><select disabled={s.lockEvent !== "medley"} value={s.lockStroke} onChange={e => update(s.id, { lockStroke: e.target.value as StrokeKey | "" })}><option value="">Any</option>{STROKES.slice(0,4).map(st => <option key={st.key} value={st.key}>{st.short}</option>)}</select></td></tr>)}</tbody></table></div>
+        <div className="section-title roster-head"><span>02</span><div><h2>{gender}’s roster</h2><p>Edit seed times, availability, exclusions, and exact relay locks.</p></div><div className="roster-actions"><input ref={importInput} type="file" accept=".csv,text/csv" aria-label="Import roster CSV" onChange={e => importRoster(e.target.files?.[0])}/><input ref={setupInput} type="file" accept=".json,application/json" aria-label="Open relay optimizer setup" onChange={e => openFallbackSetup(e.target.files?.[0])}/><button className="new-roster" onClick={newRoster}>New roster</button><button onClick={() => importInput.current?.click()}>Import CSV</button><button onClick={openSetup}>Open setup</button><button onClick={saveSetup}>Save</button><button onClick={saveAsSetup}>Save As</button><button className="add-swimmer" onClick={add}>＋ Add swimmer</button></div></div>
+        <div className="table-wrap"><table><thead><tr><th>Swimmer</th><th>Assigned relays</th><th>Relay locks</th>{STROKES.map(s => <th key={s.key}>{s.label}</th>)}<th>Availability</th><th>Exclude from</th><th>Remove</th></tr></thead><tbody>{roster.map(s => <tr key={s.id} className={s.unavailable ? "muted" : ""}><td><input className="name" value={s.name} aria-label="Swimmer name" onChange={e => update(s.id, { name: e.target.value })}/></td><td><div className="relay-assignments">{(assignments.get(s.id) || []).map(label => <span key={label}>{label}</span>)}{!assignments.has(s.id) && <small>Optimize to see assignments</small>}</div></td><td><RosterLocks swimmer={s} teamCount={teamCount} onAdd={(eventKey, team, leg) => addRosterLock(s, eventKey, team, leg)} onRemove={lock => removeRosterLock(s, lock)}/></td>{STROKES.map(st => <td key={st.key}><TimeInput value={s.times[st.key]} label={`${s.name} ${st.label}`} onCommit={value => update(s.id, { times: { ...s.times, [st.key]: value } })}/></td>)}<td><button className={`availability ${s.unavailable ? "out" : ""}`} onClick={() => update(s.id, { unavailable: !s.unavailable })}>{s.unavailable ? "Out" : "Ready"}</button></td><td><div className="exclude-events">{EVENTS.map(event => { const excluded = (s.excludedEvents || []).includes(event.key); return <button key={event.key} className={excluded ? "excluded" : ""} aria-pressed={excluded} aria-label={`${excluded ? "Allow" : "Exclude"} ${s.name} ${event.name}`} title={event.short} onClick={() => update(s.id, { excludedEvents: excluded ? (s.excludedEvents || []).filter(key => key !== event.key) : [...(s.excludedEvents || []), event.key] })}>{event.key === "medley" ? "M" : event.key === "free200" ? "2F" : "4F"}</button>})}</div></td><td><button className="remove-swimmer" aria-label={`Remove ${s.name}`} title={`Remove ${s.name}`} onClick={() => remove(s)}>×</button></td></tr>)}</tbody></table></div>
         <p className="hint">Times are in seconds. Swipe or scroll the table sideways on smaller screens. Changes save automatically to this device. CSV imports replace each roster included in the file.</p>
         {rosterMessage && <p className="roster-message" role="status">{rosterMessage}</p>}
       </div>
@@ -407,7 +537,7 @@ export default function Home() {
     <section id="results" className="results-section">
       <div className="results-head"><div><p className="eyebrow">THE LINEUP</p><h2>{results.length ? `${optimizationNames[gender] || gender} · ${mode === "ranked" ? "Ranked" : "Balanced"} teams` : "Your optimized relays will appear here"}</h2></div>{results.length > 0 && <div className="result-meta"><span>{cap} max appearances</span>{mode === "balanced" && <span>{spread.toFixed(2)}s total range</span>}</div>}</div>
       {warning && <div className="warning">⚠ {warning} Try fewer teams, a higher appearance cap, or make more swimmers available.</div>}
-      {!results.length ? <div className="empty"><div>↗</div><p>Select your meet setup, check the roster, then optimize.</p></div> : <div className="relay-list">{results.map(result => <article key={result.event} className="relay-block"><div className="relay-title"><h3>{eventName(result.event)}</h3><span>{result.teams.length} teams · fastest projected time highlighted</span></div><div className="team-grid">{result.teams.map((team, ti) => <div className={`team-card ${ti === 0 && mode === "ranked" ? "top" : ""}`} key={team.label}><div className="team-top"><div><span>TEAM</span><b>{team.label}</b></div><strong>{team.legs.length === 4 ? fmt(team.total) : "Incomplete"}</strong></div><ol>{team.legs.map((leg, i) => <li key={`${leg.swimmer.id}-${i}`}><span className="legnum">{i+1}</span><div><b>{leg.swimmer.name}</b><small>{strokeName(leg.stroke)}</small></div><time>{leg.time.toFixed(2)}</time></li>)}</ol></div>)}</div></article>)}</div>}
+      {!results.length ? <div className="empty"><div>↗</div><p>Select your meet setup, check the roster, then optimize.</p></div> : <div className="relay-list">{results.map(result => <article key={result.event} className="relay-block"><div className="relay-title"><h3>{eventName(result.event)}</h3><span>{result.teams.length} teams · lock a swimmer to keep that exact relay position</span></div><div className="team-grid">{result.teams.map((team, ti) => <div className={`team-card ${ti === 0 && mode === "ranked" ? "top" : ""}`} key={team.label}><div className="team-top"><div><span>TEAM</span><b>{team.label}</b></div><strong>{team.legs.length === 4 ? fmt(team.total) : "Incomplete"}</strong></div><ol>{team.legs.map((leg, i) => { const positionLocked = (position: number) => team.legs.some(candidate => candidate.position === position && relayLocks(candidate.swimmer).some(lock => lock.event === result.event && lock.team === ti && lock.leg === position)); const locked = positionLocked(leg.position); return <li key={`${leg.swimmer.id}-${i}`} className={locked ? "locked-leg" : ""}><span className="legnum">{leg.position + 1}</span><div><b>{leg.swimmer.name}</b><small>{strokeName(leg.stroke)}</small></div><time>{leg.time.toFixed(2)}</time>{result.event !== "medley" && <div className="lineup-order"><button disabled={leg.position === 0 || locked || positionLocked(leg.position - 1)} aria-label={`Move ${leg.swimmer.name} earlier in ${eventName(result.event)} team ${team.label}`} onClick={() => moveFreeLeg(result.event, ti, leg.position, -1)}>↑</button><button disabled={leg.position === 3 || locked || positionLocked(leg.position + 1)} aria-label={`Move ${leg.swimmer.name} later in ${eventName(result.event)} team ${team.label}`} onClick={() => moveFreeLeg(result.event, ti, leg.position, 1)}>↓</button></div>}<button className={`lineup-lock ${locked ? "active" : ""}`} aria-pressed={locked} aria-label={`${locked ? "Unlock" : "Lock"} ${leg.swimmer.name} in ${eventName(result.event)} team ${team.label}, leg ${leg.position + 1}`} title={locked ? "Unlock this position" : "Lock this position"} onClick={() => toggleLineupLock(leg.swimmer, result.event, ti, leg.position)}>{locked ? "🔒" : "○"}</button></li>})}</ol></div>)}</div></article>)}</div>}
     </section>
     <footer><div className="brand"><span className="mark" aria-hidden="true">≋</span><span className="brand-copy"><span>Lane Lines</span><small>Relay Optimizer</small></span></div><p>Built for coaches. Data stays on your device.</p></footer>
   </main>;

@@ -21,6 +21,9 @@ test("renders the Lane Lines relay optimizer with the complete optimizer shell",
   assert.match(html, /Optimize full meet/);
   assert.match(html, /Optimization name/);
   assert.match(html, /Import CSV/);
+  assert.match(html, /New roster/);
+  assert.match(html, /aria-label="Remove Maya Chen"/);
+  assert.match(html, /Assigned relays/);
   assert.match(html, /Open setup/);
   assert.match(html, />Save</);
   assert.match(html, /Save As/);

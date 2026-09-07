@@ -58,12 +58,13 @@ button{cursor:pointer}
 .roster-actions{margin-left:auto;display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
 .roster-actions input{display:none}
 .roster-actions button{border:1px solid var(--line);background:white;border-radius:6px;padding:9px 12px;font-size:10px;font-weight:800;white-space:nowrap}
+.roster-actions .new-roster{border-color:#d9b7ad;color:#8a3d2f}
 .roster-actions .add-swimmer{border-color:var(--green);background:var(--green);color:white}
 .table-wrap{width:100%;max-width:100%;overflow-x:auto;overflow-y:visible;overscroll-behavior-inline:contain;scrollbar-width:thin;scrollbar-color:#9eaaa3 #eef0e9;padding-bottom:4px}
 .table-wrap::-webkit-scrollbar{height:10px}
 .table-wrap::-webkit-scrollbar-track{background:#eef0e9}
 .table-wrap::-webkit-scrollbar-thumb{background:#9eaaa3;border:2px solid #eef0e9;border-radius:10px}
-.roster table{width:100%;border-collapse:collapse;min-width:880px}
+.roster table{width:100%;border-collapse:collapse;min-width:1390px}
 .roster th{font-size:9px;text-transform:uppercase;letter-spacing:.05em;text-align:left;color:#718078;background:#f3f5ef;padding:9px 7px;border-bottom:1px solid var(--line)}
 .roster td{padding:6px 5px;border-bottom:1px solid #eef0eb}
 .roster input,.roster select{width:58px;border:1px solid transparent;background:transparent;border-radius:4px;padding:6px 4px;font-size:11px}
@@ -76,6 +77,18 @@ button{cursor:pointer}
 .roster tr.muted{opacity:.45}
 .availability{border:0;border-radius:20px;background:#e8f4de;color:#31542b;font-size:9px;font-weight:800;padding:6px 9px}
 .availability.out{background:#f1e7e2;color:#865143}
+.remove-swimmer{display:grid;place-items:center;width:28px;height:28px;border:1px solid #d9b7ad;border-radius:6px;background:#fff;color:#a54232;font-size:18px;line-height:1}
+.remove-swimmer:hover,.remove-swimmer:focus-visible,.roster-actions .new-roster:hover,.roster-actions .new-roster:focus-visible{background:#f7e9e5;border-color:#b76b58;outline:0}
+.relay-assignments{display:flex;flex-wrap:wrap;gap:3px;min-width:150px;max-width:230px}
+.relay-assignments span{border-radius:4px;background:var(--aqua);color:#176071;padding:3px 5px;font-size:8px;font-weight:800;white-space:nowrap}
+.relay-assignments small{color:var(--muted)}
+.roster-locks{display:grid;gap:5px;min-width:310px}
+.roster-lock-list{display:flex;flex-wrap:wrap;gap:3px}
+.roster-lock-list>span{display:flex;align-items:center;gap:4px;border-radius:4px;background:#effafa;color:#176071;padding:3px 4px 3px 6px;font-size:8px;font-weight:800;white-space:nowrap}
+.roster-lock-list>span>button{width:16px;height:16px;border:0;border-radius:50%;background:#d5eeee;color:#47666c;padding:0;line-height:1}
+.roster-lock-add{display:flex;gap:3px;align-items:center}
+.roster .roster-lock-add select{width:auto;min-width:67px;border-color:var(--line);background:white;padding:5px 3px}
+.roster-lock-add>button{height:27px;border:0;border-radius:4px;background:var(--green);color:white;padding:0 7px;font-size:9px;font-weight:800}
 .hint{font-size:10px;color:#87928d;margin:12px 24px 0}
 .roster-message{margin:10px 24px 0;padding:9px 11px;border-radius:6px;background:#f1f6e6;color:#42562c;font-size:11px}
 .results-section{background:#e8f1f3;padding:58px 4.5vw 72px;min-height:420px}
@@ -107,6 +120,14 @@ button{cursor:pointer}
 .team-card li b{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .team-card li small{font-size:8px;color:#89948f}
 .team-card time{font:400 12px Georgia,serif}
+.lineup-lock{display:grid;place-items:center;width:27px;height:27px;flex:0 0 27px;border:1px solid #cbd4d8;border-radius:50%;background:white;color:#69808c;font-size:12px;padding:0}
+.lineup-lock:hover,.lineup-lock:focus-visible{border-color:var(--blue);background:var(--aqua);outline:0}
+.lineup-lock.active{border-color:var(--mint);background:var(--mint);color:var(--green)}
+.team-card li.locked-leg{background:#effafa}
+.lineup-order{display:flex;gap:2px}
+.lineup-order button{display:grid;place-items:center;width:22px;height:25px;border:1px solid #cbd4d8;border-radius:4px;background:white;color:#496472;padding:0;font-size:10px}
+.lineup-order button:hover,.lineup-order button:focus-visible{border-color:var(--blue);background:var(--aqua);outline:0}
+.lineup-order button:disabled{opacity:.25;cursor:default;background:white;border-color:#dbe2e5}
 footer{height:100px;background:var(--green);color:white;padding:0 4.5vw;display:flex;align-items:center;justify-content:space-between}
 footer p{font-size:11px;color:#9db0aa}
 @media(max-width:1000px){.workspace{grid-template-columns:1fr}
