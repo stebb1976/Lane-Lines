@@ -1,0 +1,15 @@
+.tool-menu{display:flex;align-items:center;gap:8px}
+.tool-menu a,.tool-menu button{border:1px solid #54748a;border-radius:6px;background:transparent;color:#fff;padding:7px 10px;font-size:11px;font-weight:800;text-decoration:none}
+.tool-menu a:hover,.tool-menu button:hover,.tool-menu a:focus-visible,.tool-menu button:focus-visible{border-color:#65d2d6;outline:0}
+.tool-menu a::before{content:'←';margin-right:5px}
+#tool-about-dialog{width:min(92vw,420px);border:1px solid var(--line);border-radius:12px;padding:0;color:var(--ink);box-shadow:0 20px 60px #06284442}
+#tool-about-dialog::backdrop{background:#06284499}
+#tool-about-dialog form{padding:28px}
+#tool-about-dialog h2{margin:0;text-align:center;color:var(--navy);font:700 30px Georgia,serif}
+.tool-about-mark{margin:0;text-align:center;color:var(--teal);font-size:42px;line-height:1}
+.tool-about-details{display:grid;gap:10px;margin:24px 0}
+.tool-about-details div{display:flex;justify-content:space-between;gap:20px;padding-bottom:9px;border-bottom:1px solid var(--line)}
+.tool-about-details dt{color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase}
+.tool-about-details dd{margin:0;font-weight:700}
+.tool-dialog-actions{text-align:right}
+@media(max-width:450px){.tool-menu{gap:5px}.tool-menu a,.tool-menu button{padding:6px 7px;font-size:10px}}

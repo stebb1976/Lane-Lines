@@ -2,6 +2,8 @@ const $=(selector,root=document)=>root.querySelector(selector);
 const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
 let toastTimer;
 function toast(message){const area=$('#toast');area.textContent=message;area.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>area.classList.remove('show'),3200)}
+function openToolAbout(){const release=window.LANE_LINES_VERSION||{version:'1.0',created:'2026-09-14'},date=new Date(`${release.created}T12:00:00`);$('#tool-about-version').textContent=release.version;$('#tool-about-version-date').textContent=Number.isNaN(date.getTime())?release.created:new Intl.DateTimeFormat(undefined,{year:'numeric',month:'long',day:'numeric'}).format(date);$('#tool-about-dialog').showModal()}
+$('#open-tool-about').onclick=openToolAbout;
 function requestDelete(message,action,options={}){if(window.confirm(message))action()}
 const defaultDualEvents=[['200 Medley Relay','relay'],['200 Freestyle','individual'],['200 IM','individual'],['50 Freestyle','individual'],['100 Butterfly','individual'],['100 Freestyle','individual'],['500 Freestyle','individual'],['200 Freestyle Relay','relay'],['100 Backstroke','individual'],['100 Breaststroke','individual'],['400 Freestyle Relay','relay']];
 const dualMeetKey='lane-lines-dual-meet-v1';

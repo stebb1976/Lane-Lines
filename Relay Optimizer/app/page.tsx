@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { laneLinesRelease } from "../app-version";
 
 type Gender = "Women" | "Men";
 type EventKey = "medley" | "free200" | "free400";
@@ -338,6 +339,7 @@ export default function Home() {
   const [warning, setWarning] = useState("");
   const [saved, setSaved] = useState(true);
   const [rosterMessage, setRosterMessage] = useState("");
+  const [showAbout, setShowAbout] = useState(false);
   const importInput = useRef<HTMLInputElement>(null);
   const setupInput = useRef<HTMLInputElement>(null);
   const setupHandles = useRef<Record<Gender, SetupFileHandle | null>>({ Women: null, Men: null });
@@ -509,9 +511,10 @@ export default function Home() {
     return bySwimmer;
   }, [results]);
   const spread = useMemo(() => results.flatMap(r => r.teams).length ? Math.max(...results.flatMap(r => r.teams).map(t => t.total)) - Math.min(...results.flatMap(r => r.teams).map(t => t.total)) : 0, [results]);
+  const releaseDate = new Intl.DateTimeFormat(undefined, { year: "numeric", month: "long", day: "numeric" }).format(new Date(`${laneLinesRelease.created}T12:00:00`));
 
   return <main>
-    <header className="topbar"><div className="brand"><span className="mark" aria-hidden="true">≋</span><span className="brand-copy"><span>Lane Lines</span><small>Relay Optimizer</small></span></div><div className="save"><span className={saved ? "dot" : "dot pending"}/>{saved ? "Saved on this device" : "Saving changes…"}</div></header>
+    <header className="topbar"><div className="brand"><span className="mark" aria-hidden="true">≋</span><span className="brand-copy"><span>Lane Lines</span><small>Relay Optimizer</small></span></div><div className="topbar-actions"><div className="save"><span className={saved ? "dot" : "dot pending"}/>{saved ? "Saved on this device" : "Saving changes…"}</div><nav className="tool-menu" aria-label="Relay optimizer navigation"><a href="https://stebb1976.github.io/Lane-Lines/">Lane Lines</a><button type="button" onClick={() => setShowAbout(true)}>About</button></nav></div></header>
     <section className="hero">
       <div><p className="eyebrow">LANE LINES · MEET TOOLS</p><h1>Build the right relay.<br/><em>Every time.</em></h1><p className="lede">Turn your roster into fast, fair, rule-ready relay teams in seconds.</p></div>
       <div className="hero-stats"><div><b>{roster.filter(s => !s.unavailable).length}</b><span>eligible swimmers</span></div><div><b>{events.length}</b><span>relay events</span></div><div><b>{teamCount}</b><span>teams per event</span></div></div>
@@ -540,5 +543,6 @@ export default function Home() {
       {!results.length ? <div className="empty"><div>↗</div><p>Select your meet setup, check the roster, then optimize.</p></div> : <div className="relay-list">{results.map(result => <article key={result.event} className="relay-block"><div className="relay-title"><h3>{eventName(result.event)}</h3><span>{result.teams.length} teams · lock a swimmer to keep that exact relay position</span></div><div className="team-grid">{result.teams.map((team, ti) => <div className={`team-card ${ti === 0 && mode === "ranked" ? "top" : ""}`} key={team.label}><div className="team-top"><div><span>TEAM</span><b>{team.label}</b></div><strong>{team.legs.length === 4 ? fmt(team.total) : "Incomplete"}</strong></div><ol>{team.legs.map((leg, i) => { const positionLocked = (position: number) => team.legs.some(candidate => candidate.position === position && relayLocks(candidate.swimmer).some(lock => lock.event === result.event && lock.team === ti && lock.leg === position)); const locked = positionLocked(leg.position); return <li key={`${leg.swimmer.id}-${i}`} className={locked ? "locked-leg" : ""}><span className="legnum">{leg.position + 1}</span><div><b>{leg.swimmer.name}</b><small>{strokeName(leg.stroke)}</small></div><time>{leg.time.toFixed(2)}</time>{result.event !== "medley" && <div className="lineup-order"><button disabled={leg.position === 0 || locked || positionLocked(leg.position - 1)} aria-label={`Move ${leg.swimmer.name} earlier in ${eventName(result.event)} team ${team.label}`} onClick={() => moveFreeLeg(result.event, ti, leg.position, -1)}>↑</button><button disabled={leg.position === 3 || locked || positionLocked(leg.position + 1)} aria-label={`Move ${leg.swimmer.name} later in ${eventName(result.event)} team ${team.label}`} onClick={() => moveFreeLeg(result.event, ti, leg.position, 1)}>↓</button></div>}<button className={`lineup-lock ${locked ? "active" : ""}`} aria-pressed={locked} aria-label={`${locked ? "Unlock" : "Lock"} ${leg.swimmer.name} in ${eventName(result.event)} team ${team.label}, leg ${leg.position + 1}`} title={locked ? "Unlock this position" : "Lock this position"} onClick={() => toggleLineupLock(leg.swimmer, result.event, ti, leg.position)}>{locked ? "🔒" : "○"}</button></li>})}</ol></div>)}</div></article>)}</div>}
     </section>
     <footer><div className="brand"><span className="mark" aria-hidden="true">≋</span><span className="brand-copy"><span>Lane Lines</span><small>Relay Optimizer</small></span></div><p>Built for coaches. Data stays on your device.</p></footer>
+    {showAbout && <div className="about-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setShowAbout(false); }}><section className="about-dialog" role="dialog" aria-modal="true" aria-labelledby="about-title"><p className="about-mark" aria-hidden="true">≋</p><h2 id="about-title">Lane Lines</h2><dl><div><dt>Author</dt><dd>Stephen Stebbins</dd></div><div><dt>Version</dt><dd>{laneLinesRelease.version}</dd></div><div><dt>Version date</dt><dd>{releaseDate}</dd></div></dl><button type="button" onClick={() => setShowAbout(false)}>Close</button></section></div>}
   </main>;
 }

@@ -10,9 +10,10 @@
     <link rel="stylesheet" href="meet-saved-scores.css?v=1" />
     <link rel="stylesheet" href="meet-score-json.css?v=1" />
     <link rel="stylesheet" href="meet-gender-scoring.css?v=2" />
+    <link rel="stylesheet" href="tool-navigation.css?v=1" />
   </head>
   <body>
-    <header class="topbar"><div class="brand"><span class="mark">≋</span><span>Lane Lines</span></div></header>
+    <header class="topbar"><div class="brand"><span class="mark">≋</span><span>Lane Lines</span></div><nav class="tool-menu" aria-label="Meet scoring navigation"><a href="../index.html">Lane Lines</a><button id="open-tool-about" type="button">About</button></nav></header>
     <main class="dual-meet-view">
       <article class="dual-meet-sheet">
         <div class="section-heading"><div><p class="deck-kicker">LANE LINES · MEET TOOLS</p><h1>Meet Scoring</h1><p class="dual-meet-intro">Enter the team for each scoring place. Team totals update automatically.</p></div><button id="reset-dual-meet" class="outline" type="button">Reset results</button></div>
@@ -24,7 +25,9 @@
       </article>
     </main>
     <div id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js?v=1"></script>
+    <dialog id="tool-about-dialog"><form method="dialog"><p class="tool-about-mark" aria-hidden="true">≋</p><h2>Lane Lines</h2><dl class="tool-about-details"><div><dt>Author</dt><dd>Stephen Stebbins</dd></div><div><dt>Version</dt><dd id="tool-about-version">1.0</dd></div><div><dt>Version date</dt><dd id="tool-about-version-date">September 14, 2026</dd></div></dl><div class="tool-dialog-actions"><button value="cancel" class="primary">Close</button></div></form></dialog>
+    <script src="../app-version.js"></script>
+    <script src="app.js?v=2"></script>
     <script src="team-c-control.js?v=1"></script>
     <script src="scoring-limits.js?v=1"></script>
     <script src="meet-saved-scores.js?v=1"></script>
