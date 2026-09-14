@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "check": "node --check app.js && node --check server.js"
+    "check": "node --check app.js && node --check server.js && node --check app-version.js && node --check scripts/bump-version.mjs",
+    "prepare": "git config core.hooksPath .githooks"
   }
 }
