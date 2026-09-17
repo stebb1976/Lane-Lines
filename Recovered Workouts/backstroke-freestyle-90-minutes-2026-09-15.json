@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "exportedAt": "2026-09-15T12:00:00.000Z",
+  "workout": {
+    "title": "Backstroke & Freestyle — 90 Minutes",
+    "focus": "Backstroke & Freestyle",
+    "tags": "backstroke, freestyle, 90 minutes, drill focus",
+    "pool": "25",
+    "blocks": [
+      {
+        "name": "Warm Up", "note": "", "focus": "", "pool": "25", "repeat": 1, "roundInstructions": [],
+        "items": [
+          {"type":"rep","count":1,"distance":400,"stroke":"Freestyle, Backstroke","activity":"Swim","transition":"0:00","interval":"8:00","detail":"Alternate 50 backstroke / 50 freestyle"},
+          {"type":"rep","count":6,"distance":50,"stroke":"Freestyle, Backstroke","activity":"Swim, Kick","transition":"1:00","interval":"1:10","detail":"25 streamline kick on back / 25 easy freestyle"}
+        ]
+      },
+      {
+        "name": "Backstroke Drill Focus — 15 Minutes", "note": "", "focus": "Backstroke Technique", "pool": "25", "repeat": 1, "roundInstructions": [],
+        "items": [
+          {"type":"rep","count":12,"distance":50,"stroke":"Backstroke","activity":"Drill","transition":"3:00","interval":"1:15","detail":"3 x 4 (Shoulder Up Arm Up, 6-kick switch, full backstroke with focus on rotation), 10–15 sec rest"}
+        ]
+      },
+      {
+        "name": "Main Set — Backstroke & Freestyle", "note": "", "focus": "Backstroke & Freestyle", "pool": "25", "repeat": 1, "roundInstructions": [],
+        "items": [
+          {"type":"rep","count":6,"distance":50,"stroke":"Backstroke","activity":"Swim","transition":"2:00","interval":"1:10","detail":"Backstroke: descend 1–3 twice, clean finishes on back"},
+          {"type":"rep","count":10,"distance":100,"stroke":"Freestyle, Backstroke","activity":"Swim","transition":"2:00","interval":"1:40","detail":"Odd 100s freestyle moderate; even 100s backstroke descend 1–5"},
+          {"type":"rep","count":12,"distance":50,"stroke":"Freestyle","activity":"Swim","transition":"3:00","interval":"1:00","detail":"Freestyle: descending interval repeat (60, 50, 40 sec), hold pace throughout"}
+        ]
+      },
+      {
+        "name": "Sprints from blocks", "note": "", "focus": "Starts", "pool": "25", "repeat": 1, "roundInstructions": [],
+        "items": [
+          {"type":"rep","count":6,"distance":25,"stroke":"Freestyle, Backstroke","activity":"Swim","transition":"2:00","interval":"1:30","detail":""}
+        ]
+      },
+      {
+        "name": "Cool Down", "note": "", "focus": "Recovery", "pool": "25", "repeat": 1, "roundInstructions": [],
+        "items": [
+          {"type":"rep","count":1,"distance":100,"stroke":"Freestyle","activity":"Swim","transition":"0:00","interval":"2:00","detail":"Easy choice, include at least 100 backstroke"}
+        ]
+      }
+    ]
+  }
+}

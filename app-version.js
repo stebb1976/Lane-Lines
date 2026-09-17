@@ -1,1 +1,1 @@
-window.LANE_LINES_VERSION={version:'1.4',created:'2026-09-14'};
+window.LANE_LINES_VERSION={version:'1.5',created:'2026-09-17'};
