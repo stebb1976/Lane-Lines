@@ -10,7 +10,7 @@
     <link rel="icon" href="icon.svg?v=1" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icon.svg?v=1" />
     <link rel="icon" href="icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=270" />
+    <link rel="stylesheet" href="styles.css?v=271" />
     <link rel="stylesheet" href="lane-timing.css?v=253" />
     <title>Lane Lines</title>
   </head>
@@ -70,12 +70,13 @@
     <datalist id="focus-options"></datalist>
     <template id="block-template">
       <article class="block">
-        <div class="block-top"><input class="block-name" value="Main set" aria-label="Block name" /><span class="repeat-badge" hidden>REPEATED BLOCK</span><span class="block-summary"><span class="block-start">Start: 0:00</span><span class="block-distance">0 yd</span><span class="block-time">Est. —</span></span><div class="block-controls"><button class="save-block" title="Save to Blocks Library" aria-label="Save to Blocks Library">★</button><button class="replace-block" title="Replace from Blocks Library" aria-label="Replace from Blocks Library">⇄</button><button class="move-block-up" title="Move block up" aria-label="Move block up">↑</button><button class="move-block-down" title="Move block down" aria-label="Move block down">↓</button><button class="duplicate" title="Duplicate block">⧉</button><button class="delete-block" title="Delete block">×</button></div></div>
+        <div class="block-top"><input class="block-name" value="Main set" aria-label="Block name" /><span class="repeat-badge" hidden>REPEATED BLOCK</span><span class="block-summary"><span class="block-start">Start: 0:00</span><span class="block-distance">0 yd</span><span class="block-time">Est. —</span></span><div class="block-controls"><button class="toggle-block" type="button" title="Collapse block" aria-label="Collapse block" aria-expanded="true">▾</button><button class="save-block" title="Save to Blocks Library" aria-label="Save to Blocks Library">★</button><button class="replace-block" title="Replace from Blocks Library" aria-label="Replace from Blocks Library">⇄</button><button class="move-block-up" title="Move block up" aria-label="Move block up">↑</button><button class="move-block-down" title="Move block down" aria-label="Move block down">↓</button><button class="duplicate" title="Duplicate block">⧉</button><button class="delete-block" title="Delete block">×</button></div></div>
         <textarea class="block-note" rows="1" placeholder="Coaching note (optional)"></textarea>
         <div class="block-meta"><label>FOCUS<span class="focus-control"><input class="block-focus" maxlength="80" placeholder="Choose or enter a focus" /><button class="focus-dropdown" type="button" aria-label="Show existing focuses" aria-expanded="false">⌄</button><div class="focus-options-menu" hidden></div></span></label><label class="block-creator-pool">POOL<select><option value="25">25 yd pool</option><option value="50">50 m pool</option></select></label></div>
         <label class="block-repeat-wrap"><span>REPEAT ENTIRE BLOCK</span><input class="block-repeat" type="number" min="1" value="1" /></label>
         <div class="round-instructions" hidden></div>
         <div class="block-items" aria-label="Block contents"></div>
+        <div class="block-collapsed-preview" hidden></div>
         <button type="button" class="add-rep">+ Add set line</button>
         <button type="button" class="add-child-block">+ Add sub-block</button>
         <button type="button" class="add-child-library">+ Add sub-block from Blocks Library</button>
@@ -115,7 +116,7 @@
     <dialog id="schedule-date-dialog" class="schedule-date-dialog"><form method="dialog"><h2 id="schedule-date-workout">Schedule workout</h2><p>Confirm or change the workout date.</p><div class="mini-calendar-heading"><button type="button" class="outline" id="schedule-date-previous" aria-label="Previous month">←</button><strong id="schedule-date-month"></strong><button type="button" class="outline" id="schedule-date-next" aria-label="Next month">→</button></div><div class="mini-calendar-weekdays"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div><div id="schedule-date-grid" class="mini-calendar-grid"></div><p id="schedule-date-selected" class="schedule-date-selected"></p><div class="dialog-actions"><button value="cancel" class="ghost">Cancel</button><button type="button" class="primary" id="confirm-schedule-date">Schedule Workout</button></div></form></dialog>
     <div id="toast" role="status"></div>
     <script src="app-version.js"></script>
-    <script src="app.js?v=275"></script>
+    <script src="app.js?v=278"></script>
     <script src="lane-timing.js?v=254"></script>
   </body>
 </html>
