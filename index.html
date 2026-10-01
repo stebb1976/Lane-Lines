@@ -10,7 +10,7 @@
     <link rel="icon" href="icon.svg?v=1" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icon.svg?v=1" />
     <link rel="icon" href="icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=276" />
+    <link rel="stylesheet" href="styles.css?v=277" />
     <link rel="stylesheet" href="lane-timing.css?v=254" />
     <title>Lane Lines</title>
   </head>
@@ -92,8 +92,9 @@
         <label class="activity-wrap multi-choice"><span>TYPE</span><input class="activity" type="hidden" value="Swim" /><button class="multi-choice-toggle" type="button" aria-expanded="false">Swim</button><span class="multi-choice-menu" hidden><span class="multi-choice-option"><input type="checkbox" value="Swim" /> Swim</span><span class="multi-choice-option"><input type="checkbox" value="Kick" /> Kick</span><span class="multi-choice-option"><input type="checkbox" value="Pull" /> Pull</span><span class="multi-choice-option"><input type="checkbox" value="Drill" /> Drill</span></span></label>
         <label><span>TRANSITION TIME</span><input class="transition" value="2:00" placeholder="2:00" /></label>
         <label><span>INTERVAL</span><input class="interval" value="1:30" placeholder="1:30" /></label>
-        <div class="rep-controls"><button class="move-rep-up" title="Move set line up" aria-label="Move set line up">↑</button><button class="move-rep-down" title="Move set line down" aria-label="Move set line down">↓</button><button class="duplicate-rep" title="Duplicate set line" aria-label="Duplicate set line">⧉</button><button class="delete-rep" title="Delete set line" aria-label="Delete set line">×</button></div>
+        <div class="rep-controls"><button class="toggle-rep" type="button" title="Collapse set line" aria-label="Collapse set line" aria-expanded="true">▾</button><button class="move-rep-up" title="Move set line up" aria-label="Move set line up">↑</button><button class="move-rep-down" title="Move set line down" aria-label="Move set line down">↓</button><button class="duplicate-rep" title="Duplicate set line" aria-label="Duplicate set line">⧉</button><button class="delete-rep" title="Delete set line" aria-label="Delete set line">×</button></div>
         <p class="rep-detail"><input class="detail" placeholder="e.g. descend 1–4" /><button class="choose-drill" type="button">+ Add Drill</button></p>
+        <button type="button" class="rep-collapsed-summary" aria-label="Expand set line"></button>
         <p class="rep-time">Start: 0:00 · Total: 0 yd · Est. —</p>
       </div>
     </template>
@@ -116,7 +117,7 @@
     <dialog id="schedule-date-dialog" class="schedule-date-dialog"><form method="dialog"><h2 id="schedule-date-workout">Schedule workout</h2><p>Confirm or change the workout date.</p><div class="mini-calendar-heading"><button type="button" class="outline" id="schedule-date-previous" aria-label="Previous month">←</button><strong id="schedule-date-month"></strong><button type="button" class="outline" id="schedule-date-next" aria-label="Next month">→</button></div><div class="mini-calendar-weekdays"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div><div id="schedule-date-grid" class="mini-calendar-grid"></div><p id="schedule-date-selected" class="schedule-date-selected"></p><div class="dialog-actions"><button value="cancel" class="ghost">Cancel</button><button type="button" class="primary" id="confirm-schedule-date">Schedule Workout</button></div></form></dialog>
     <div id="toast" role="status"></div>
     <script src="app-version.js"></script>
-    <script src="app.js?v=286"></script>
+    <script src="app.js?v=289"></script>
     <script src="lane-timing.js?v=255"></script>
   </body>
 </html>
