@@ -27,7 +27,7 @@ test("renders the Lane Lines relay optimizer with the complete optimizer shell",
   assert.match(html, /Open setup/);
   assert.match(html, />Save</);
   assert.match(html, /Save As/);
-  assert.match(html, /href="https:\/\/progressive-round-timer.sure-lamp-8039.chatgpt.site"[^>]*>Pace Clock/);
+  assert.doesNotMatch(html, />Pace Clock/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/);
 });
 
