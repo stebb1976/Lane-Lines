@@ -11,3 +11,11 @@ build/
 ll_project.json
 /.relay-optimizer-sites-git/
 /Relay Optimizer/tests/rendered-html.test 2.mjs
+
+# Pace Clock is buildless; its dist/index.html is the source.
+!/Pace Clock/dist/
+!/Pace Clock/dist/index.html
+
+# Required build integration source, not generated output.
+!/Relay Optimizer/build/
+!/Relay Optimizer/build/sites-vite-plugin.ts

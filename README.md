@@ -39,3 +39,7 @@ Each user can create and control a separate GitHub repository, then enter its `o
 ## Shared computer GitHub settings
 
 For one shared GitHub configuration across every browser on a computer, start the local app with `npm start` and open `http://127.0.0.1:8124` in the browser you want to use. Saving GitHub Settings then stores the repository URL, branch, and token in the local `ll_project.json` file beside the app. The server listens only on that computer (`127.0.0.1`), and the settings file is excluded from Git. Do not use GitHub Pages or open `index.html` directly when you want this shared-computer configuration.
+
+## Pace Clock
+
+Standalone Pace Clock source is in `Pace Clock/dist/index.html`. The live app is https://progressive-round-timer.sure-lamp-8039.chatgpt.site and opens from the Relay Optimizer menu. It supports progressively shorter or longer intervals and requires confirmation before resetting.

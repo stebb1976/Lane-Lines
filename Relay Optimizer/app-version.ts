@@ -1,1 +1,1 @@
-export const laneLinesRelease = { version: "1.10", created: "2026-10-01" } as const;
+export const laneLinesRelease = { version: "1.11", created: "2026-11-08" } as const;

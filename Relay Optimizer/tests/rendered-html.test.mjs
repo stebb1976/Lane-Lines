@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-async function render() {
+async function render(path = "/") {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
-  return worker.fetch(new Request("http://localhost/", { headers: { accept: "text/html" } }), {
+  return worker.fetch(new Request(`http://localhost${path}`, { headers: { accept: "text/html" } }), {
     ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) },
   }, { waitUntil() {}, passThroughOnException() {} });
 }
@@ -27,5 +27,12 @@ test("renders the Lane Lines relay optimizer with the complete optimizer shell",
   assert.match(html, /Open setup/);
   assert.match(html, />Save</);
   assert.match(html, /Save As/);
+  assert.match(html, /href="https:\/\/progressive-round-timer.sure-lamp-8039.chatgpt.site"[^>]*>Pace Clock/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/);
+});
+
+test("legacy timer URL redirects to standalone Pace Clock", async () => {
+  const response = await render("/timer");
+  assert.equal(response.status, 307);
+  assert.equal(response.headers.get("location"), "https://progressive-round-timer.sure-lamp-8039.chatgpt.site");
 });
